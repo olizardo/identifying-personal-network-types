@@ -6,24 +6,38 @@ format:
     incremental: true 
 ---
 
+# Introduction
+
 ## Aim of the study
 - Can personal (ego) networks empirically classified using **structural** characteristics?
      - Diameter (Largest Connected Component)
      - Density
-     - Modularity
-     - Betweenness Centralization
+     - Modularity (Louvain)
+     - Centralization (Betweenness)
 
-## Previous Work
-- Bidart et al. (2018), *Social Networks*
+## Previous Work: Bidart et al. (2018), *Social Networks*
 - Supervised (Manual) Classification
 - Younger Population
 - French Context
+- Their typology is meant to "produce structural measures of personal networks that are realistic and can be applied generally" (p. 2).
+
+## Previous Work: Bidart et al. (2018), *Social Networks*
+- Distinction between:
+  - Attribute-based typologies
+    - Role relation and demographic composition (e.g., kin/non-kin)
+    - Support
+  - Structural typologies
+  - "Mixed" typologies
+    - e.g., Gianella & Fischer (2016)
 
 ## Current Work
 - Unsupervised (Clustering) Classification
-- More Expansive Data
-- Older (University Student) Population
+- (Comparatively) Large Sample 
+  - Most previous work relies on small samples (e.g., $N<100$)
+- University Student Population
 - U.S. Context
+
+# Data and Approach
 
 ## Data
 - NetHealth Study
@@ -31,7 +45,7 @@ format:
 - Eight Ego Network Survey Waves over three years
      - Administered at beginning and end of each semester
      - Fall (August) 2015 - Spring (May) 2018
-- Construct Cumulative Ego Networks for Study Participant
+- Built Cumulative Ego Networks for Study Participant
 - Total number of ego-alter dyads: 35,915 
      - Average of about fifty alters per ego
 
@@ -48,10 +62,13 @@ communicating or interacting*
 ## Analytic Sample
 - Retain only participants with three or more alters
 - Eliminated one participant who reported no connections between alters
-     - Number of egos: 707
-     
+- Listwise deletion of missing data
+     - Number of egos: 700
+
+# Results
+
 ## Cumulative Ego Network Size Distribution
-![Y-Axis: Number of study participants; X- Axis: Ego-network size](plots/size-hist.png)
+![Y-Axis: Number of study participants; X- Axis: Ego-network size. Min = 3; Max = 153 ](plots/size-hist.png)
 
 ## Clustering Approach
 - Tried a suite of methods
@@ -71,20 +88,32 @@ communicating or interacting*
 |    1             |  +   |    +     |   --  |   +  |   +   |
 |    2             |  +   |    +     |   --  |   +  |   --  |
 |    3             |  +   |    +     |   --  |   -- |   +   |
-|    4             |  --  |   --     |   +   |   -- |   -   |
+|    4             |  --  |   --     |   +   |   -- |   --   |
 
 ## Qualitative Summary of Cluster Analysis (Bidart et al.'s Labels)
 |Cluster           | Size | Diam. | Dens. | Mod. | Cent. |
 | :---             | :--- | :---     | :---  | :--- | :---  |
 |    Pearl Collar  |  +   |    +     |   --  |   +  |   +   |
-|    Dispersed     |  +   |    +     |   --  |   +  |   --  |
+|    Segmented     |  +   |    +     |   --  |   +  |   --  |
 |    Centered Star |  +   |    +     |   --  |   -- |   +   |
-|    Regular Dense |  --  |   --     |   +   |   -- |   -   |
+|    (Small) Regular Dense |  --  |   --     |   +   |   -- |   --   |
 
+- No evidence of a "centered dense" or a "dispersed" type 
 
 ## Clusters by Gender
 ![](plots/kmeans-gender.png)
 
+## Clusters by Gender
+![](tabs/reg-tab-gender.png)
+
+## Clusters by Gender
+- In this context:
+  - Men:
+    - Have smaller, denser, decentralized networks
+  - Women: 
+    - Have larger more segmented networks 
+    - Centered on key intermediaries
+    
 ## Clusters by Ethnoracial ID.
 ![](plots/kmeans-race-white.png)
 
@@ -99,3 +128,42 @@ communicating or interacting*
 
 ## Clusters by Ethnoracial ID.
 ![](plots/kmeans-race-foreign.png)
+
+## Clusters by Ethnoracial ID.
+![](tabs/reg-tab-foreign.png)
+
+## Clusters by Ethnoracial ID.
+- In this context:
+  - Relatively weak ethnoracial differences in personal network types
+  - Foreign students:
+    - More likely to have small, decentralized, dense networks
+    
+
+    
+
+## Clusters by Socio-Economic Status
+![](plots/kmeans-ses.png)
+
+## Clusters by Socio-Economic Status
+![](tabs/reg-tab-ses.png)
+
+## Clusters by Socio-Economic Status
+![](tabs/reg-tab-ses3.png)
+
+## Clusters by Socio-Economic Status
+- Opposite of Bidart et al.'s (2018) results "...the social hierarchy corresponds to a contrast between the dense networks of the working classes and more fragmented networks of the upper classes" (p. 7).
+    
+- In the elite college context, we see segmented working class networks
+
+- Income increases likelihood of having large, centralized networks, up to a point
+
+# Conclusion
+## To Do List
+- Ascertain Role Relations and Tie Characteristics of Central Alters
+- Move to a decision tree approach
+  - To empirically estimate estimate cutoff values for structural features
+  - Select number of clusters best predicted by DT
+- Enhance clustering with other structural features
+  - Number of Components
+  - Proportion of alters in largest component
+  - Others?

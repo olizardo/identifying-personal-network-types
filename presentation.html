@@ -335,6 +335,11 @@ Omar Lizardo
 </div>
 
 </section>
+<section>
+<section id="introduction" class="title-slide slide level1 center">
+<h1>Introduction</h1>
+
+</section>
 <section id="aim-of-the-study" class="slide level2">
 <h2>Aim of the study</h2>
 <ul>
@@ -342,28 +347,54 @@ Omar Lizardo
 <ul>
 <li class="fragment">Diameter (Largest Connected Component)</li>
 <li class="fragment">Density</li>
-<li class="fragment">Modularity</li>
-<li class="fragment">Betweenness Centralization</li>
+<li class="fragment">Modularity (Louvain)</li>
+<li class="fragment">Centralization (Betweenness)</li>
 </ul></li>
 </ul>
 </section>
-<section id="previous-work" class="slide level2">
-<h2>Previous Work</h2>
+<section id="previous-work-bidart-et-al.-2018-social-networks" class="slide level2">
+<h2>Previous Work: Bidart et al.&nbsp;(2018), <em>Social Networks</em></h2>
 <ul>
-<li class="fragment">Bidart et al.&nbsp;(2018), <em>Social Networks</em></li>
 <li class="fragment">Supervised (Manual) Classification</li>
 <li class="fragment">Younger Population</li>
 <li class="fragment">French Context</li>
+<li class="fragment">Their typology is meant to “produce structural measures of personal networks that are realistic and can be applied generally” (p.&nbsp;2).</li>
+</ul>
+</section>
+<section id="previous-work-bidart-et-al.-2018-social-networks-1" class="slide level2">
+<h2>Previous Work: Bidart et al.&nbsp;(2018), <em>Social Networks</em></h2>
+<ul>
+<li class="fragment">Distinction between:
+<ul>
+<li class="fragment">Attribute-based typologies
+<ul>
+<li class="fragment">Role relation and demographic composition (e.g., kin/non-kin)</li>
+<li class="fragment">Support</li>
+</ul></li>
+<li class="fragment">Structural typologies</li>
+<li class="fragment">“Mixed” typologies
+<ul>
+<li class="fragment">e.g., Gianella &amp; Fischer (2016)</li>
+</ul></li>
+</ul></li>
 </ul>
 </section>
 <section id="current-work" class="slide level2">
 <h2>Current Work</h2>
 <ul>
 <li class="fragment">Unsupervised (Clustering) Classification</li>
-<li class="fragment">More Expansive Data</li>
-<li class="fragment">Older (University Student) Population</li>
+<li class="fragment">(Comparatively) Large Sample
+<ul>
+<li class="fragment">Most previous work relies on small samples (e.g., <span class="math inline">\(N&lt;100\)</span>)</li>
+</ul></li>
+<li class="fragment">University Student Population</li>
 <li class="fragment">U.S. Context</li>
 </ul>
+</section></section>
+<section>
+<section id="data-and-approach" class="title-slide slide level1 center">
+<h1>Data and Approach</h1>
+
 </section>
 <section id="data" class="slide level2">
 <h2>Data</h2>
@@ -377,7 +408,7 @@ Omar Lizardo
 <li class="fragment">Administered at beginning and end of each semester</li>
 <li class="fragment">Fall (August) 2015 - Spring (May) 2018</li>
 </ul></li>
-<li class="fragment">Construct Cumulative Ego Networks for Study Participant</li>
+<li class="fragment">Built Cumulative Ego Networks for Study Participant</li>
 <li class="fragment">Total number of ego-alter dyads: 35,915
 <ul>
 <li class="fragment">Average of about fifty alters per ego</li>
@@ -404,16 +435,22 @@ Omar Lizardo
 <h2>Analytic Sample</h2>
 <ul>
 <li class="fragment">Retain only participants with three or more alters</li>
-<li class="fragment">Eliminated one participant who reported no connections between alters
+<li class="fragment">Eliminated one participant who reported no connections between alters</li>
+<li class="fragment">Listwise deletion of missing data
 <ul>
-<li class="fragment">Number of egos: 707</li>
+<li class="fragment">Number of egos: 700</li>
 </ul></li>
 </ul>
+</section></section>
+<section>
+<section id="results" class="title-slide slide level1 center">
+<h1>Results</h1>
+
 </section>
 <section id="cumulative-ego-network-size-distribution" class="slide level2">
 <h2>Cumulative Ego Network Size Distribution</h2>
 
-<img data-src="plots/size-hist.png" class="r-stretch quarto-figure-center"><p class="caption">Y-Axis: Number of study participants; X- Axis: Ego-network size</p></section>
+<img data-src="plots/size-hist.png" class="r-stretch quarto-figure-center"><p class="caption">Y-Axis: Number of study participants; X- Axis: Ego-network size. Min = 3; Max = 153</p></section>
 <section id="clustering-approach" class="slide level2">
 <h2>Clustering Approach</h2>
 <ul>
@@ -478,7 +515,7 @@ Omar Lizardo
 <td style="text-align: left;">–</td>
 <td style="text-align: left;">+</td>
 <td style="text-align: left;">–</td>
-<td style="text-align: left;">-</td>
+<td style="text-align: left;">–</td>
 </tr>
 </tbody>
 </table>
@@ -506,7 +543,7 @@ Omar Lizardo
 <td style="text-align: left;">+</td>
 </tr>
 <tr class="even">
-<td style="text-align: left;">Dispersed</td>
+<td style="text-align: left;">Segmented</td>
 <td style="text-align: left;">+</td>
 <td style="text-align: left;">+</td>
 <td style="text-align: left;">–</td>
@@ -522,20 +559,44 @@ Omar Lizardo
 <td style="text-align: left;">+</td>
 </tr>
 <tr class="even">
-<td style="text-align: left;">Regular Dense</td>
+<td style="text-align: left;">(Small) Regular Dense</td>
 <td style="text-align: left;">–</td>
 <td style="text-align: left;">–</td>
 <td style="text-align: left;">+</td>
 <td style="text-align: left;">–</td>
-<td style="text-align: left;">-</td>
+<td style="text-align: left;">–</td>
 </tr>
 </tbody>
 </table>
+<ul>
+<li class="fragment">No evidence of a “centered dense” or a “dispersed” type</li>
+</ul>
 </section>
 <section id="clusters-by-gender" class="slide level2">
 <h2>Clusters by Gender</h2>
 
 <img data-src="plots/kmeans-gender.png" class="r-stretch"></section>
+<section id="clusters-by-gender-1" class="slide level2">
+<h2>Clusters by Gender</h2>
+
+<img data-src="tabs/reg-tab-gender.png" class="r-stretch"></section>
+<section id="clusters-by-gender-2" class="slide level2">
+<h2>Clusters by Gender</h2>
+<ul>
+<li class="fragment">In this context:
+<ul>
+<li class="fragment">Men:
+<ul>
+<li class="fragment">Have smaller, denser, decentralized networks</li>
+</ul></li>
+<li class="fragment">Women:
+<ul>
+<li class="fragment">Have larger more segmented networks</li>
+<li class="fragment">Centered on key intermediaries</li>
+</ul></li>
+</ul></li>
+</ul>
+</section>
 <section id="clusters-by-ethnoracial-id." class="slide level2">
 <h2>Clusters by Ethnoracial ID.</h2>
 
@@ -555,10 +616,69 @@ Omar Lizardo
 <section id="clusters-by-ethnoracial-id.-4" class="slide level2">
 <h2>Clusters by Ethnoracial ID.</h2>
 
-<img data-src="plots/kmeans-race-foreign.png" class="r-stretch"><div class="footer footer-default">
+<img data-src="plots/kmeans-race-foreign.png" class="r-stretch"></section>
+<section id="clusters-by-ethnoracial-id.-5" class="slide level2">
+<h2>Clusters by Ethnoracial ID.</h2>
+
+<img data-src="tabs/reg-tab-foreign.png" class="r-stretch"></section>
+<section id="clusters-by-ethnoracial-id.-6" class="slide level2">
+<h2>Clusters by Ethnoracial ID.</h2>
+<ul>
+<li class="fragment">In this context:
+<ul>
+<li class="fragment">Relatively weak ethnoracial differences in personal network types</li>
+<li class="fragment">Foreign students:
+<ul>
+<li class="fragment">More likely to have small, decentralized, dense networks</li>
+</ul></li>
+</ul></li>
+</ul>
+</section>
+<section id="clusters-by-socio-economic-status" class="slide level2">
+<h2>Clusters by Socio-Economic Status</h2>
+
+<img data-src="plots/kmeans-ses.png" class="r-stretch"></section>
+<section id="clusters-by-socio-economic-status-1" class="slide level2">
+<h2>Clusters by Socio-Economic Status</h2>
+
+<img data-src="tabs/reg-tab-ses.png" class="r-stretch"></section>
+<section id="clusters-by-socio-economic-status-2" class="slide level2">
+<h2>Clusters by Socio-Economic Status</h2>
+
+<img data-src="tabs/reg-tab-ses3.png" class="r-stretch"></section>
+<section id="clusters-by-socio-economic-status-3" class="slide level2">
+<h2>Clusters by Socio-Economic Status</h2>
+<ul>
+<li class="fragment"><p>Opposite of Bidart et al.’s (2018) results “…the social hierarchy corresponds to a contrast between the dense networks of the working classes and more fragmented networks of the upper classes” (p.&nbsp;7).</p></li>
+<li class="fragment"><p>In the elite college context, we see segmented working class networks</p></li>
+<li class="fragment"><p>Income increases likelihood of having large, centralized networks, up to a point</p></li>
+</ul>
+</section></section>
+<section>
+<section id="conclusion" class="title-slide slide level1 center">
+<h1>Conclusion</h1>
+
+</section>
+<section id="to-do-list" class="slide level2">
+<h2>To Do List</h2>
+<ul>
+<li class="fragment">Ascertain Role Relations and Tie Characteristics of Central Alters</li>
+<li class="fragment">Move to a decision tree approach
+<ul>
+<li class="fragment">To empirically estimate estimate cutoff values for structural features</li>
+<li class="fragment">Select number of clusters best predicted by DT</li>
+</ul></li>
+<li class="fragment">Enhance clustering with other structural features
+<ul>
+<li class="fragment">Number of Components</li>
+<li class="fragment">Proportion of alters in largest component</li>
+<li class="fragment">Others?</li>
+</ul></li>
+</ul>
+<div class="footer footer-default">
 
 </div>
-</section>
+</section></section>
     </div>
   </div>
 
