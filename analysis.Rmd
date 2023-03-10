@@ -1,0 +1,13 @@
+# Setup
+```{r setup, include=FALSE}
+    knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+    library(here)
+    library(ggplot2)
+    library(tidyverse)
+```
+
+# Data Wrangling
+```{r Reading data}
+    gs4_auth(email = "omarlizardo@gmail.com")
+    dat <- read.csv(here("dat", "kmeans-4-descriptives_lgcc.csv"))
+```

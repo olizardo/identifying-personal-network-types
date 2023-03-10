@@ -1,0 +1,101 @@
+---
+title: "Identifying Personal Network Types"
+author: "Omar Lizardo"
+format: 
+  revealjs:
+    incremental: true 
+---
+
+## Aim of the study
+- Can personal (ego) networks empirically classified using **structural** characteristics?
+     - Diameter (Largest Connected Component)
+     - Density
+     - Modularity
+     - Betweenness Centralization
+
+## Previous Work
+- Bidart et al. (2018), *Social Networks*
+- Supervised (Manual) Classification
+- Younger Population
+- French Context
+
+## Current Work
+- Unsupervised (Clustering) Classification
+- More Expansive Data
+- Older (University Student) Population
+- U.S. Context
+
+## Data
+- NetHealth Study
+     - Sample of 709 Members of the Class of 2019 at the University of Notre Dame
+- Eight Ego Network Survey Waves over three years
+     - Administered at beginning and end of each semester
+     - Fall (August) 2015 - Spring (May) 2018
+- Construct Cumulative Ego Networks for Study Participant
+- Total number of ego-alter dyads: 35,915 
+     - Average of about fifty alters per ego
+
+## Ego Network Survey Approach
+- Online Qualtrics Survey
+- Name Generator:
+     - *List up to 20 people with whom you spend time
+communicating or interacting*
+- Name Interpreters:
+     - Alter Sociodemographic characteristics (e.g., Gender, Race, Religion, etc.)
+     - Relationship characteristics (e.g., Closeness, Role Relations, Duration, etc.)
+- *Ego's report of whether two alters know one another*
+
+## Analytic Sample
+- Retain only participants with three or more alters
+- Eliminated one participant who reported no connections between alters
+     - Number of egos: 707
+     
+## Cumulative Ego Network Size Distribution
+![Y-Axis: Number of study participants; X- Axis: Ego-network size](plots/size-hist.png)
+
+## Clustering Approach
+- Tried a suite of methods
+     - DBSCAN
+     - Hierarchical DBSCAN
+     - Latent Profile Analysis
+     - k-means 
+- Inspected relevant clustering quality metrics
+     - k-means with four clusters produced best results
+     
+##  Cluster Profiles
+![](plots/kmeans.png)
+
+## Qualitative Summary of Cluster Analysis 
+|Cluster           | Size | Diam. | Dens. | Mod. | Cent. |
+| :---             | :--- | :---     | :---  | :--- | :---  |
+|    1             |  +   |    +     |   --  |   +  |   +   |
+|    2             |  +   |    +     |   --  |   +  |   --  |
+|    3             |  +   |    +     |   --  |   -- |   +   |
+|    4             |  --  |   --     |   +   |   -- |   -   |
+
+## Qualitative Summary of Cluster Analysis (Bidart et al.'s Labels)
+|Cluster           | Size | Diam. | Dens. | Mod. | Cent. |
+| :---             | :--- | :---     | :---  | :--- | :---  |
+|    Pearl Collar  |  +   |    +     |   --  |   +  |   +   |
+|    Dispersed     |  +   |    +     |   --  |   +  |   --  |
+|    Centered Star |  +   |    +     |   --  |   -- |   +   |
+|    Regular Dense |  --  |   --     |   +   |   -- |   -   |
+
+
+## Clusters by Gender
+![](plots/kmeans-gender.png)
+
+## Clusters by Ethnoracial ID.
+![](plots/kmeans-race-white.png)
+
+## Clusters by Ethnoracial ID.
+![](plots/kmeans-race-black.png)
+
+## Clusters by Ethnoracial ID.
+![](plots/kmeans-race-hisp.png)
+
+## Clusters by Ethnoracial ID.
+![](plots/kmeans-race-asian.png)
+
+## Clusters by Ethnoracial ID.
+![](plots/kmeans-race-foreign.png)
