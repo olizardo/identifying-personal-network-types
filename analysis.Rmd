@@ -1,342 +1,199 @@
+---
+title: "Identifying Personal Network Types: Full Replication and Extension"
+author: "Omar Lizardo"
+output: 
+  html_document:
+    toc: true
+    toc_depth: 3
+    theme: flatly
+---
+
 # Setup
+
 ```{r setup, include=FALSE}
-    knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
-     library(here)
-     library(ggplot2)
-     library(nnet)
-     library(patchwork)
-     library(sjPlot)
-     library(tidyverse)
-     library(webshot)
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+library(here)
+library(igraph)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(patchwork)
+library(nnet)
+library(rpart)
+library(rpart.plot)
+library(gridExtra)
+library(grid)
 ```
 
+# 1. Raw Data & Cumulative Ego Network Construction
 
+```{r data-construction}
+# Load raw survey data
+edges_raw <- read.csv(here("raw_dat", "alter_alter_edges.csv"))
+netsurv_raw <- read.csv(here("raw_dat", "network_survey.csv"))
+basic_raw <- read.csv(here("raw_dat", "basic_survey.csv"))
 
-# Data Wrangling
-```{r Reading data}
-     dat <- read.csv(here("dat", "kmeans-4-descriptives_lgcc.csv"))
-     dat <- dat[-1, ]
-     dat <- dat[-1, ]
-     dat <- dat %>% 
-          mutate(across(1:ncol(dat), as.numeric)) %>% 
-          rename(cluster = X,
-                 Size = size.1,
-                 Mod. = modularity.1,
-                 Diam. = diameter.1,
-                 Cent. = betweenness_centralization.1,
-                 Dens. = density.1) %>% 
-          mutate(cluster = cluster + 1) %>% 
-          mutate(cluster = factor (cluster)) %>% 
-          dplyr::select(c("cluster", "Size", "Mod.", "Diam.", "Cent.", "Dens.")) 
-     
-     dat.gender <- read.csv(here("dat", "kmeans-4-bygender_lgcc.csv")) %>% 
-          rename(cluster = cluster_km, gender = gender_1, N = X0) %>% 
-          mutate(cluster = cluster + 1) %>% 
-          mutate(cluster = factor(cluster,
-                                  labels = c("Pearl Collar",
-                                             "Segmented",
-                                             "Centered Star",
-                                             "Regular Dense"))) %>% 
-          group_by(cluster) %>% 
-          mutate(N_clus = sum(N)) %>% 
-          mutate(Prop = N / N_clus)
+all_egos <- sort(unique(netsurv_raw$egoid))
 
-     dat.race <- read.csv(here("dat", "kmeans-4-byrace_lgcc.csv")) %>% 
-          rename(cluster = cluster_km, race = race_1, N = X0) %>% 
-          mutate(cluster = cluster + 1) %>%
-          mutate(cluster = factor(cluster,
-                                  labels = c("Pearl Collar",
-                                             "Segmented",
-                                             "Centered Star",
-                                             "Regular Dense"))) %>% 
-          group_by(cluster) %>% 
-          mutate(N_clus = sum(N)) %>% 
-          mutate(Prop = N / N_clus) %>% 
-          filter(race != "Other")
-     
-    dat.pers <- read.csv(here("dat", "kmeans-4-bybig5_lgcc.csv"))
-    dat.pers <- dat.pers[-1, ]
-    dat.pers <- dat.pers[-1, ]
-    dat.pers <- dat.pers %>% 
-        mutate(across(1:ncol(dat), as.numeric)) %>% 
-        rename(cluster = X) %>% 
-        mutate(cluster = cluster + 1) %>% 
-        mutate(cluster = factor (cluster)) %>% 
-        dplyr::select(c("cluster", "Extraversion_1.1", "Openness_1.1",
-                        "Neuroticism_1.1", "Agreeableness_1.1",
-                        "Conscientiousness_1.1"))
-    dat.class <- read.csv(here("dat", "kmeans-4-byparentincome_lgcc.csv")) %>% 
-        rename(cluster = cluster_km, inc = parentincome_1 , N = X0) %>% 
-        mutate(cluster = cluster + 1) %>%
-        mutate(cluster = factor(cluster,
-                                  labels = c("Pearl Collar",
-                                             "Segmented",
-                                             "Centered Star",
-                                             "Regular Dense"))) %>% 
-        group_by(cluster) %>% 
-        mutate(N_clus = sum(N)) %>% 
-        mutate(Prop = N / N_clus) %>% 
-        mutate(inc = factor(inc, levels = c("less than $25,000", "$25,000 - $49,999", "$50,000 - $74,999",  "$75,000 - $99,999", "$100,000 - $149,999", "$150,000 - $199,999", "$200,000 - $249,999", "$250,000 or more"), ordered = TRUE))
-    dat.reg <- read.csv(here("dat", "data_clusters-4-km_demog_lgcc.csv")) %>% 
-        rename(cluster = cluster_km, gender = gender_1, race = race_1) %>% 
-        mutate(cluster = cluster + 1) %>%
-        mutate(cluster = factor(cluster,
-                                  labels = c("Pearl Collar",
-                                             "Segmented",
-                                             "Centered Star",
-                                             "Regular Dense"))) %>% 
-        dplyr::select("cluster", "gender", "race") %>% 
-        filter(race != "Other") %>% 
-        mutate(gender = factor(gender, levels = c("Male", "Female"))) %>% 
-        mutate(race = factor(race, levels = c("African-American", "White", "Foreign Student", "Latino/a", "Asian-American"))) %>% 
-        mutate(foreign = if_else(race == "Foreign Student", 1, 0)) %>% 
-        mutate(foreign = factor(foreign, labels = c("Not Foreign", "Foreign"))) %>% 
-        mutate(asian = if_else(race == "Asian-American", 1, 0)) %>% 
-        mutate(asian = factor(asian, labels = c("Not Asian", "Asian"))) %>% 
-        tibble()
+# Compute structural metrics for each participant across waves 1-8
+compute_ego_metrics <- function(ego) {
+  alters <- sort(unique(netsurv_raw$alterid[netsurv_raw$egoid == ego]))
+  n_alters <- length(alters)
+  if (n_alters == 0) return(NULL)
+  
+  sub_edges <- edges_raw %>%
+    filter(egoid == ego, vertex1 != ego, vertex2 != ego) %>%
+    select(vertex1, vertex2) %>%
+    distinct() %>%
+    filter(vertex1 %in% alters, vertex2 %in% alters)
+  
+  n_edges <- nrow(sub_edges)
+  g <- graph_from_data_frame(sub_edges, directed = FALSE, vertices = data.frame(name = alters))
+  g <- simplify(g)
+  
+  dens <- edge_density(g)
+  if (is.na(dens)) dens <- 0
+  
+  clust <- transitivity(g, type = "global")
+  if (is.na(clust)) clust <- 0
+  
+  cent_betw <- centr_betw(g, directed = FALSE)$centralization
+  if (is.nan(cent_betw) || is.na(cent_betw)) cent_betw <- 0
+  
+  cent_deg <- centr_degree(g, mode = "all")$centralization
+  if (is.nan(cent_deg) || is.na(cent_deg)) cent_deg <- 0
+  
+  comps <- components(g)
+  n_comps <- comps$no
+  max_comp_size <- if (length(comps$csize) > 0) max(comps$csize) else 0
+  prop_lcc <- if (n_alters > 0) max_comp_size / n_alters else 0
+  
+  if (max_comp_size > 1) {
+    lgcc <- induced_subgraph(g, which(comps$membership == which.max(comps$csize)))
+    diam_lgcc <- diameter(lgcc, directed = FALSE, weights = NA)
+  } else {
+    diam_lgcc <- 0
+  }
+  
+  if (ecount(g) > 0) {
+    set.seed(123)
+    cl <- cluster_louvain(g)
+    mod <- modularity(cl)
+    if (is.nan(mod) || is.na(mod)) mod <- 0
+  } else {
+    mod <- 0
+  }
+  
+  data.frame(
+    vertex_id = ego,
+    egoid = ego,
+    size = n_alters,
+    edges = n_edges,
+    density = dens,
+    clustering = clust,
+    betweenness_centralization = cent_betw,
+    degree_centralization = cent_deg,
+    diameter = diam_lgcc,
+    modularity = mod,
+    n_components = n_comps,
+    max_comp_size = max_comp_size,
+    prop_lcc = prop_lcc
+  )
+}
+
+ego_metrics_df <- do.call(rbind, lapply(all_egos, compute_ego_metrics))
+
+demo_cols <- c("egoid", "gender_1", "race_1", "parentincome_1", "RegionUS",
+               "Extraversion_1", "Openness_1", "Agreeableness_1", "Conscientiousness_1", "Neuroticism_1")
+
+df_merged <- inner_join(ego_metrics_df, basic_raw[, demo_cols], by = "egoid")
+df_analytic <- df_merged %>% filter(size >= 3, edges > 0)
 ```
 
+# 2. K-Means Clustering & Typology Mapping
 
-# Plots
+```{r clustering}
+cluster_vars <- c("size", "modularity", "diameter", "betweenness_centralization", "density")
+X_scaled <- scale(df_analytic[, cluster_vars])
 
-```{r Main Cluster Profile Plots}
-     p <- ggplot(dat, aes(x = Size, y = cluster))
-     p <- p + geom_segment(aes(yend = cluster), xend = 0, colour = "grey35") 
-     p <- p + geom_point(size = 5)
-     p <- p + theme_sjplot2()
-     p <- p + scale_x_continuous(breaks = seq(from = 0, to = 80, by = 10),
-                                 limits = c(10, 80))
-     p <- p + theme(panel.grid.major.y = element_blank(),
-                    axis.line.y = element_blank(),
-                    axis.text = element_text(size = 18),
-                    title = element_text(size = 26))
-     p1 <- p + labs(y = "", x = "", title = "Size")
-     
-     p <- ggplot(dat, aes(x = Diam., y = cluster))
-     p <- p + geom_segment(aes(yend = cluster), xend = 0, colour = "grey35") 
-     p <- p + geom_point(size = 5)
-     p <- p + theme_sjplot2()
-     p <- p + scale_x_continuous(breaks = seq(from = 1, to = 6, by = 1),
-                                 limits = c(1, 6))
-     p <- p + theme(panel.grid.major.y = element_blank(),
-                    axis.line.y = element_blank(),
-                    axis.text = element_text(size = 18),
-                    title = element_text(size = 26))
-     p2 <- p + labs(y = "", x = "", title = "Diameter")
-     
-     p <- ggplot(dat, aes(x = Dens., y = cluster))
-     p <- p + geom_segment(aes(yend = cluster), xend = 0, colour = "grey35") 
-     p <- p + geom_point(size = 5)
-     p <- p + theme_sjplot2()
-     p <- p + scale_x_continuous(breaks = seq(from = 0, to = 0.8, by = 0.2),
-                                 limits = c(0, 0.8))
-     p <- p + theme(panel.grid.major.y = element_blank(),
-                    axis.line.y = element_blank(),
-                    axis.text = element_text(size = 18),
-                    title = element_text(size = 26)) 
-     p3 <- p + labs(y = "", x = "", title = "Density")
-     
-     p <- ggplot(dat, aes(x = Mod., y = cluster))
-     p <- p + geom_segment(aes(yend = cluster), xend = 0, colour = "grey35") 
-     p <- p + geom_point(size = 5)
-     p <- p + theme_sjplot2()
-     p <- p + scale_x_continuous(breaks = seq(from = 0, to = 0.8, by = 0.2),
-                                 limits = c(0, 0.8))
-     p <- p + theme(panel.grid.major.y = element_blank(),
-                    axis.line.y = element_blank(),
-                    axis.text = element_text(size = 18),
-                    title = element_text(size = 26))
-     p4 <- p + labs(y = "", x = "", title = "Modularity")
+set.seed(42)
+km_fit <- kmeans(X_scaled, centers = 4, nstart = 100, iter.max = 100)
 
-     p <- ggplot(dat, aes(x = Cent., y = cluster))
-     p <- p + geom_segment(aes(yend = cluster), xend = 0, colour = "grey35") 
-     p <- p + geom_point(size = 5)
-     p <- p + theme_sjplot2()
-     p <- p + scale_x_continuous(breaks = seq(from = 0, to = 0.4, by = 0.1),
-                                 limits = c(0, 0.4))
-     p <- p + theme(panel.grid.major.y = element_blank(),
-                    axis.line.y = element_blank(),
-                    axis.text = element_text(size = 18),
-                    title = element_text(size = 26))
-     p5 <- p + labs(y = "", x = "", title = "Centralization")
-     
-     p <- p1 + p2 + p3 + p4 + p5 + plot_layout(nrow = 1)
-     p
-     save_plot(here("plots", "kmeans.png"), width = 50, height = 25)
+temp_clus <- km_fit$cluster
+means_mat <- aggregate(X_scaled, by = list(temp_clus), FUN = mean)
+
+clus_pearl <- which.max(means_mat$size)
+clus_dense <- which.max(means_mat$density)
+clus_star  <- which.max(means_mat$betweenness_centralization)
+clus_seg   <- setdiff(1:4, c(clus_pearl, clus_dense, clus_star))
+
+cluster_map <- c()
+cluster_map[clus_pearl] <- 0
+cluster_map[clus_seg]   <- 1
+cluster_map[clus_star]  <- 2
+cluster_map[clus_dense] <- 3
+
+df_analytic$cluster_km <- cluster_map[temp_clus]
+df_analytic$cluster_factor <- factor(df_analytic$cluster_km,
+                                     levels = 0:3,
+                                     labels = c("Pearl Collar", "Segmented", "Centered Star", "Regular Dense"))
+
+table(df_analytic$cluster_factor)
 ```
 
-```{r Gender Plot}
-     p <- ggplot(dat.gender, aes(x = Prop, y = cluster, 
-                                 group = gender, color = gender))
-     p <- p + geom_point(size = 6)
-     p <- p + theme_sjplot2()
-     p <- p + geom_vline(xintercept = 0.5, color = "grey50")
-     p <- p +   theme(
-                    panel.grid.major.x = element_blank(),
-                    panel.grid.minor.x = element_blank(),
-                    panel.grid.major.y = element_line(
-                         colour = "grey60", linetype = "dashed"),
-                    axis.line.y = element_blank(),
-                    axis.text = element_text(size = 18),
-                    title = element_text(size = 26),
-                    legend.text = element_text(size = 18),
-                    legend.position = "bottom",
-                    legend.title = element_blank())
-     p <- p + labs(y = "", x = "")
-     p <- p + scale_x_continuous(breaks = seq(from = 0.3, to = 0.7, by = 0.1),
-                                 limits = c(0.3, 0.7))
-     p
-     save_plot(here("plots", "kmeans-gender.png"), width = 30, height = 20)
+# 3. Decision Tree Classification (Extension 2)
 
+```{r decision-tree}
+tree_fit <- rpart(
+  cluster_factor ~ size + modularity + diameter + betweenness_centralization + density + n_components + prop_lcc,
+  data = df_analytic,
+  method = "class",
+  control = rpart.control(cp = 0.01, maxdepth = 5, minsplit = 10)
+)
+
+rpart.plot(tree_fit, 
+           type = 4, 
+           extra = 104, 
+           under = TRUE, 
+           fallen.leaves = TRUE,
+           box.palette = "BuGn",
+           main = "Empirical Decision Tree for Personal Network Typologies")
+
+pred_tree <- predict(tree_fit, type = "class")
+cat("Decision Tree Accuracy:", mean(pred_tree == df_analytic$cluster_factor), "\n")
 ```
 
-```{r Race Plot}
-     p <- ggplot(filter(dat.race, race == "White"), 
-                        aes(x = Prop, y = cluster))
-     p <- p + geom_point(size = 6)
-     p <- p + theme_sjplot2()
-     p <- p +   theme(
-                    panel.grid.major.x = element_blank(),
-                    panel.grid.minor.x = element_blank(),
-                    panel.grid.major.y = element_line(
-                         colour = "grey60", linetype = "dashed"),
-                    axis.line.y = element_blank(),
-                    axis.text = element_text(size = 18),
-                    strip.text = element_text(size = 20),
-                    title = element_text(size = 26),
-                    legend.text = element_text(size = 18),
-                    legend.position = "bottom",
-                    legend.title = element_blank())
-     p <- p + labs(y = "", x = "", title = "White")
-     p <- p + scale_x_continuous(breaks = seq(from = 0, to = 0.7, by = 0.1),
-                                 limits = c(0, 0.7))
-     p
-     save_plot(here("plots", "kmeans-race-white.png"), width = 30, height = 20)
-     
-     p <- ggplot(filter(dat.race, race == "African-American"), 
-                        aes(x = Prop, y = cluster))
-     p <- p + geom_point(size = 6)
-     p <- p + theme_sjplot2()
-     p <- p +   theme(
-                    panel.grid.major.x = element_blank(),
-                    panel.grid.minor.x = element_blank(),
-                    panel.grid.major.y = element_line(
-                         colour = "grey60", linetype = "dashed"),
-                    axis.line.y = element_blank(),
-                    axis.text = element_text(size = 18),
-                    strip.text = element_text(size = 20),
-                    title = element_text(size = 26),
-                    legend.text = element_text(size = 18),
-                    legend.position = "bottom",
-                    legend.title = element_blank())
-     p <- p + labs(y = "", x = "", title = "African-American")
-     p <- p + scale_x_continuous(breaks = seq(from = 0, to = 0.1, by = 0.025),
-                                 limits = c(0, 0.1))
-     p
-     save_plot(here("plots", "kmeans-race-black.png"), width = 30, height = 20)
-     
-     p <- ggplot(filter(dat.race, race == "Latino/a"), 
-                        aes(x = Prop, y = cluster))
-     p <- p + geom_point(size = 6)
-     p <- p + theme_sjplot2()
-     p <- p +   theme(
-                    panel.grid.major.x = element_blank(),
-                    panel.grid.minor.x = element_blank(),
-                    panel.grid.major.y = element_line(
-                         colour = "grey60", linetype = "dashed"),
-                    axis.line.y = element_blank(),
-                    axis.text = element_text(size = 18),
-                    strip.text = element_text(size = 20),
-                    title = element_text(size = 26),
-                    legend.text = element_text(size = 18),
-                    legend.position = "bottom",
-                    legend.title = element_blank())
-     p <- p + labs(y = "", x = "", title = "Latinx")
-     p <- p + scale_x_continuous(breaks = seq(from = 0, to = 0.2, by = 0.05),
-                                 limits = c(0, 0.2))
-     p
-     save_plot(here("plots", "kmeans-race-hisp.png"), width = 30, height = 20)
+# 4. Statistical Regressions
 
-     p <- ggplot(filter(dat.race, race == "Asian-American"), 
-                        aes(x = Prop, y = cluster))
-     p <- p + geom_point(size = 6)
-     p <- p + theme_sjplot2()
-     p <- p +   theme(
-                    panel.grid.major.x = element_blank(),
-                    panel.grid.minor.x = element_blank(),
-                    panel.grid.major.y = element_line(
-                         colour = "grey60", linetype = "dashed"),
-                    axis.line.y = element_blank(),
-                    axis.text = element_text(size = 18),
-                    strip.text = element_text(size = 20),
-                    title = element_text(size = 26),
-                    legend.text = element_text(size = 18),
-                    legend.position = "bottom",
-                    legend.title = element_blank())
-     p <- p + labs(y = "", x = "", title = "Asian-American")
-     p <- p + scale_x_continuous(breaks = seq(from = 0, to = 0.2, by = 0.05),
-                                 limits = c(0, 0.2))
-     p
-     save_plot(here("plots", "kmeans-race-asian.png"), width = 30, height = 20)
+```{r regressions}
+inc_levels <- c("less than $25,000", "$25,000 - $49,999", "$50,000 - $74,999", 
+                "$75,000 - $99,999", "$100,000 - $149,999", "$150,000 - $199,999", 
+                "$200,000 - $249,999", "$250,000 or more")
 
-     p <- ggplot(filter(dat.race, race == "Foreign Student"), 
-                        aes(x = Prop, y = cluster))
-     p <- p + geom_point(size = 6)
-     p <- p + theme_sjplot2()
-     p <- p +   theme(
-                    panel.grid.major.x = element_blank(),
-                    panel.grid.minor.x = element_blank(),
-                    panel.grid.major.y = element_line(
-                         colour = "grey60", linetype = "dashed"),
-                    axis.line.y = element_blank(),
-                    axis.text = element_text(size = 18),
-                    strip.text = element_text(size = 20),
-                    title = element_text(size = 26),
-                    legend.text = element_text(size = 18),
-                    legend.position = "bottom",
-                    legend.title = element_blank())
-     p <- p + labs(y = "", x = "", title = "Foreign")
-     p <- p + scale_x_continuous(breaks = seq(from = 0, to = 0.2, by = 0.05),
-                                 limits = c(0, 0.2))
-     p
-     save_plot(here("plots", "kmeans-race-foreign.png"), width = 30, height = 20)
+dat_reg <- df_analytic %>%
+  rename(cluster = cluster_factor, gender = gender_1, race = race_1) %>%
+  filter(race != "Other", race != "", !is.na(gender), gender %in% c("Male", "Female")) %>%
+  mutate(gender = factor(gender, levels = c("Male", "Female"))) %>%
+  mutate(race = factor(race, levels = c("African-American", "White", "Foreign Student", "Latino/a", "Asian-American"))) %>%
+  mutate(foreign = if_else(race == "Foreign Student", "Foreign", "Not Foreign")) %>%
+  mutate(foreign = factor(foreign, levels = c("Not Foreign", "Foreign"))) %>%
+  mutate(asian = if_else(race == "Asian-American", "Asian", "Not Asian")) %>%
+  mutate(asian = factor(asian, levels = c("Not Asian", "Asian"))) %>%
+  mutate(inc = factor(parentincome_1, levels = inc_levels))
+
+# Gender Model
+mod_gender <- multinom(cluster ~ gender, data = dat_reg)
+summary(mod_gender)
+
+# Race Model
+mod_race <- multinom(cluster ~ foreign + asian, data = dat_reg)
+summary(mod_race)
+
+# Income / SES Model
+mod_ses <- multinom(cluster ~ inc, data = dat_reg)
+summary(mod_ses)
+
+# Big Five Personality Model
+mod_big5 <- multinom(cluster ~ Extraversion_1 + Openness_1 + Agreeableness_1 + Conscientiousness_1 + Neuroticism_1, data = dat_reg)
+summary(mod_big5)
 ```
-
-```{r SES Plot}
-     p <- ggplot(filter(dat.class), 
-                        aes(y = Prop, x = inc, group = cluster, color = cluster))
-     p <- p + geom_line(linewidth = 1.15)
-     p <- p + geom_point(size = 4)
-     p <- p + theme_sjplot2()
-     p <- p + labs(x = "", y = "", title = "Parent's Income")
-     p <- p + theme(axis.text.x = element_text(angle = 30, size = 12),
-                    axis.line.x = element_blank(),
-                    legend.position = "bottom",
-                    legend.title = element_blank(),
-                    legend.text = element_text(size = 16),
-                    axis.text.y = element_text(size = 16),
-                    title = element_text(size = 26))
-     p
-     save_plot(here("plots", "kmeans-ses.png"), width = 30, height = 20)
-```
-
-
-
-
-# Regressions
-```{r}
-    mod.gender <- multinom(cluster ~ gender, data = dat.reg)
-    tab_model(mod.gender, file = here("tabs", "reg-tab-gender.html"))
-    webshot(here("tabs", "reg-tab-gender.html"), 
-            here("tabs", "reg-tab-gender.png"),
-            vwidth = 800, vheight = 200)
-    
-    mod.race <- multinom(cluster ~ foreign + asian, data = dat.reg)
-    tab_model(mod.race, file = here("tabs", "reg-tab-race.html"))
-    webshot(here("tabs", "reg-tab-race.html"), 
-            here("tabs", "reg-tab-race.png"),
-            vwidth = 800, vheight = 200)
-    
-
-```
-
