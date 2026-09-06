@@ -763,6 +763,8 @@ scale_fill_manual(values = COLOR_CREDIBILITY, name = "Directional Credibility")
 - **Authors:** Omar Lizardo, Brandon Sepulvado, Cheng Wang, and David Hachen
 - **Google Doc URL:** https://docs.google.com/document/d/1vtRoaJQ1FTEfpEj-PVMBFuBoxN0cCWt8VNuAfiTm304
 - **Google Doc ID:** `1vtRoaJQ1FTEfpEj-PVMBFuBoxN0cCWt8VNuAfiTm304`
+- **Overleaf Project URL:** https://www.overleaf.com/project/6a9dc27130411890b11d68ff
+- **Overleaf Git URL:** https://git.overleaf.com/6a9dc27130411890b11d68ff
 - **Data Source:** NetHealth Study (University of Notre Dame Class of 2019, 8 waves over 3 years, Fall 2015–Spring 2018).
 - **Analytic Sample:** $N = 701$ college students with $\ge 3$ unique cumulative alters and non-zero alter-alter connectivity (35,912 ego-alter nominations; 174,748 alter-alter ties).
 
