@@ -702,6 +702,10 @@ scale_fill_manual(values = COLOR_CREDIBILITY, name = "Directional Credibility")
   - Strictly use **double quotation marks** (“...”) for quotations, named concepts, coined phrases, and colloquial terms (e.g., “omnivorous generation”, “cultural omnivore”, “high art”, “inclusive elitists”) rather than single quotes (‘...’ or '...').
   - Reserve single quotation marks (‘...’) strictly for quotations or terms nested inside other quotations.
   - Avoid using straight single quotes (`'...'`) in running manuscript prose, abstracts, titles, and captions for general terminology or quotation.
+- **Prohibition of "Architecture" for Patterns, Structures, Designs, or Matrices**:
+  - Strictly do **NOT** use the word *"architecture"* (or *"architectures"*) as a metaphor or fancy synonym for *structure*, *pattern*, *configuration*, *organization*, *matrix*, *system*, *geometry*, or *design* (e.g., avoid *"correlation architecture"*, *"network architecture"*, *"structural architecture"*, *"subgroup architecture"*, *"brokerage architecture"*, *"institutional architecture"*, or *"multi-wave architecture"*).
+  - Reserve *"architecture"* strictly for actual physical buildings, the built environment, or recognized technical computing architectures (e.g., computer hardware architecture).
+  - Strictly use direct, precise terms such as **"structure"**, **"pattern"**, **"configuration"**, **"organization"**, **"matrix"**, **"design"**, **"geometry"**, or **"layout"** instead (e.g., *“correlation matrix”*, *“network structure”*, *“institutional structure”*, *“subgroup organization”*, *“brokerage pattern”*, *“longitudinal design”*).
 - **Prohibition of "Democratic" for Egalitarian / Pervasive Distribution**:
   - Strictly do **NOT** use the word *"democratic"*, *"democratically"*, or *"democratization"* when what is meant is *egalitarian*, *equally distributed*, *widely distributed*, *broad-based*, *pervasive*, or *widespread*.
   - "Democratic" is a specific term from political theory and political science denoting a particular kind of political regime or system of governance, not cultural prevalence, widespread adoption, or evaluative egalitarianism.
