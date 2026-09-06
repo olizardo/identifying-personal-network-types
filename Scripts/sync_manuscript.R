@@ -29,14 +29,17 @@ message("[2/4] Downloading live manuscript from Google Drive (preserving all aut
 drive_auth(email = "omarlizardo@gmail.com")
 drive_download(as_id(doc_id), path = live_docx, overwrite = TRUE)
 
-# Update local markdown mirror
-system2("pandoc", args = c("-f", "docx", "-t", "gfm", "--wrap=none", live_docx, "-o", "draft_manuscript.md"))
-
 message("[3/4] Performing in-place XML injection of tables and figures...")
 exit_code <- system2("python3", args = c("Scripts/sync_manuscript.py", live_docx, updated_docx))
 if (exit_code != 0) {
   stop("Error during in-place XML injection.")
 }
+
+message("  Formatting manuscript typography and layout...")
+system2("python3", args = c("Scripts/format_manuscript.py", updated_docx, updated_docx))
+
+# Update local markdown mirror from the updated docx
+system2("pandoc", args = c("-f", "docx", "-t", "gfm", "--wrap=none", updated_docx, "-o", "draft_manuscript.md"))
 
 message("[4/4] Uploading updated manuscript back to Google Drive...")
 drive_update(as_id(doc_id), media = updated_docx)

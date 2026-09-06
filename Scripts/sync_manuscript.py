@@ -36,7 +36,7 @@ def parse_markdown_table(file_path):
         lines = [line.strip() for line in f if line.strip()]
     table_lines = [line for line in lines if line.startswith("|") and line.endswith("|")]
     if len(table_lines) < 3: return [], []
-    headers = [c.strip() for c in table_lines[0].strip("|").split("|")]
+    headers = [c.strip().strip('*').strip() for c in table_lines[0].strip("|").split("|")]
     rows = []
     for line in table_lines[2:]:
         row = [c.strip() for c in line.strip("|").split("|")]
@@ -172,6 +172,410 @@ def create_drawing_xml(r_id, image_path):
     )
     return xml
 
+def text_to_runs(text):
+    tokens = re.split(r'(\*[^*]+\*)', text)
+    runs = []
+    for token in tokens:
+        if not token: continue
+        if token.startswith('*') and token.endswith('*') and len(token) > 2:
+            escaped = xml_escape(token[1:-1])
+            runs.append(f'<w:r><w:rPr><w:i/></w:rPr><w:t xml:space="preserve">{escaped}</w:t></w:r>')
+        else:
+            escaped = xml_escape(token)
+            runs.append(f'<w:r><w:t xml:space="preserve">{escaped}</w:t></w:r>')
+    return ''.join(runs)
+
+def make_heading_p(text, level=1):
+    style = f"Heading{level}"
+    before = "300" if level == 1 else "200"
+    escaped = xml_escape(text)
+    xml = (
+        f'<w:p xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">'
+        f'<w:pPr><w:pStyle w:val="{style}"/><w:suppressAutoHyphens/><w:spacing w:before="{before}" w:after="60"/>'
+        f'<w:ind w:left="0" w:right="0" w:firstLine="0"/><w:jc w:val="left"/></w:pPr>'
+        f'<w:r><w:t>{escaped}</w:t></w:r>'
+        f'</w:p>'
+    )
+    return ET.fromstring(xml)
+
+def make_body_p(text):
+    runs = text_to_runs(text)
+    xml = (
+        f'<w:p xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">'
+        f'<w:pPr><w:pStyle w:val="Normal"/><w:suppressAutoHyphens/><w:spacing w:line="360" w:lineRule="auto" w:before="0" w:after="0"/>'
+        f'<w:ind w:left="0" w:right="0" w:firstLine="720"/><w:jc w:val="both"/></w:pPr>'
+        f'{runs}'
+        f'</w:p>'
+    )
+    return ET.fromstring(xml)
+
+def make_ref_p(text):
+    runs = text_to_runs(text)
+    xml = (
+        f'<w:p xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">'
+        f'<w:pPr><w:suppressAutoHyphens/><w:spacing w:line="360" w:lineRule="auto" w:before="0" w:after="60"/>'
+        f'<w:ind w:left="720" w:right="0" w:hanging="720"/><w:jc w:val="left"/></w:pPr>'
+        f'{runs}'
+        f'</w:p>'
+    )
+    return ET.fromstring(xml)
+
+def inject_literature_review_and_intro(body, ns):
+    trans_p_text = (
+        "The present study addresses each of these four limitations by leveraging the longitudinal design, institutional setting, and relational depth of the NetHealth Study. "
+        "First, to overcome the cross-sectional constraint, we analyze eight waves of survey data tracking an undergraduate cohort across their first three collegiate years. "
+        "This multi-wave architecture allows us to examine both cumulative relational capital accumulated across college (N = 701) and semester-to-semester Markov state transitions (N = 1,900 intervals), directly evaluating the empirical persistence versus structural mobility of personal network regimes over time. "
+        "Second, to resolve the dilemma between arbitrary heuristics and uninterpretable algorithmic clustering, we train an empirical classification decision tree that reproduces unsupervised cluster assignments with 92.9% accuracy. "
+        "This model yields explicit, data-driven cutoffs—identifying alter–alter density as the primary structural boundary in dense collegiate environments—offering transparent and portable decision criteria that can be applied in comparative research. "
+        "Third, to address the contextual void, we embed personal networks within their meso-level organizational settings (Feld, 1981), estimating multilevel categorical logit models with crossed random effects for freshman residence halls (J = 29) and academic majors (J = 43). "
+        "By partitioning institutional sorting alongside validated Big Five personality dimensions, we quantitatively assess how organizational opportunity structures and individual dispositions jointly shape personal network geometry. "
+        "Finally, to connect abstract topology to substantive social capital, we evaluate alter-level functional support provision across four key domains (social companionship, informational advice, emotional comfort, and financial assistance) alongside composite measures of support multiplexity, relational closeness, and interpersonal trust (N = 580). "
+        "In doing so, we bridge the compositional and structural traditions, showing how distinct topological configurations embody systematic tradeoffs between broad informational reach and dense, high-bandwidth emotional solidarity."
+    )
+
+    body_children = list(body)
+    gaps_idx = None
+    data_idx = None
+
+    for idx, elem in enumerate(body_children):
+        t = ''.join(elem.itertext()).strip()
+        if t.startswith("Despite these significant methodological advances"):
+            if gaps_idx is None:
+                gaps_idx = idx
+        elif t.startswith("Data and Analytical Sample"):
+            data_idx = idx
+            break
+
+    # If the four gaps paragraph and Data heading are found:
+    if gaps_idx is not None and data_idx is not None:
+        elements_between = body_children[gaps_idx + 1 : data_idx]
+        if len(elements_between) == 1 and "The present study addresses each of these four limitations" in ''.join(elements_between[0].itertext()):
+            print("  [Lit Review] Transitional paragraph already perfectly in place. Skipping.")
+            return
+
+        # Purge any duplicate/stray elements between gaps_idx and data_idx
+        for elem in elements_between:
+            body.remove(elem)
+
+        # Insert exactly the transitional paragraph
+        body.insert(gaps_idx + 1, make_body_p(trans_p_text))
+        print(f"  [Lit Review] Successfully placed transitional paragraph after four gaps paragraph (element {gaps_idx}).")
+        return
+
+    intro_last_idx = None
+    for idx, elem in enumerate(body_children):
+        t = ''.join(elem.itertext()).strip()
+        if t.startswith("Our analysis extends"):
+            intro_last_idx = idx
+        elif t.startswith("Data and Analytical Sample"):
+            data_idx = idx
+            break
+
+    if data_idx is None:
+        print("  [Lit Review Warning] Could not find 'Data and Analytical Sample' heading.")
+        return
+
+    # Update paragraph 14 of introduction to reflect all 6 contributions
+    intro_updated_text = (
+        "Our analysis extends previous scholarship in six substantive directions. "
+        "We begin by mapping the correlation architecture connecting egocentric graph metrics, showing how subgroup modularity and dyadic density systematically trade off as personal networks expand in volume. "
+        "To ground these structural signatures in concrete social configurations, we draw on Vacca’s emphasis on medoid representations to identify empirical archetype exemplars and visualize their relational structures using force-directed network graphs. "
+        "Moving beyond manual heuristics and black-box clustering assignments, we then train an empirical classification decision tree that predicts typology membership with 92.9% accuracy and establishes explicit topological cutoffs. "
+        "Overcoming the static constraints of cross-sectional surveys, we evaluate semester-to-semester Markov state transitions across 1,900 longitudinal intervals to measure the empirical stability and structural mobility of personal network forms over time. "
+        "Next, we connect these relational configurations to institutional opportunity structures and individual dispositions by estimating multilevel categorical logit models with crossed random effects for freshman residence halls (J = 29) and academic majors (J = 43) alongside validated Big Five personality dimensions. "
+        "Finally, we bridge the longstanding divide between structural and compositional network traditions by examining functional social support provisions, revealing how topological architecture governs relational multiplexity and emotional bandwidth."
+    )
+    if intro_last_idx is not None:
+        body.remove(body_children[intro_last_idx])
+        body.insert(intro_last_idx, make_body_p(intro_updated_text))
+        body_children = list(body)
+        for idx, elem in enumerate(body_children):
+            t = ''.join(elem.itertext()).strip()
+            if t.startswith("Data and Analytical Sample"):
+                data_idx = idx
+                break
+
+    lit_elems = []
+    lit_elems.append(make_heading_p("Recent Developments in Personal Network Typologies", 1))
+    lit_elems.append(make_body_p(
+        "The ambition to classify personal networks into discrete structural types represents an enduring program within sociocentric and egocentric analysis. "
+        "Rather than treating personal networks as undifferentiated aggregations of ties, typology research seeks to uncover recurrent configurations of interpersonal relations that reflect fundamental principles of social organization (Fischer, 1982; McCarty, 2002; Perry et al., 2018). "
+        "Over the past two decades, this literature has progressed across four interrelated currents: (1) the transition from attribute-based compositional profiles to purely topological graph structures; "
+        "(2) the debate between deductive theoretical archetypes and inductive algorithmic clustering; "
+        "(3) alternative frameworks centered on structural cohesion, fragmentation, and hierarchical deconstruction; and "
+        "(4) the emerging connection between individual psychological dispositions and network architecture."
+    ))
+
+    # Subsection 1
+    lit_elems.append(make_heading_p("The Compositional vs. Structural Divide in Network Typologizing", 2))
+    lit_elems.append(make_body_p(
+        "Early typological research predominantly focused on network composition—the demographic attributes, role categories, and institutional contexts characterizing an individual’s contacts (Antonucci et al., 2013; Offer & Fischer, 2018). "
+        "In an influential contribution, Giannella and Fischer (2016) used Random Forests on detailed survey data from Northern California (N = 1,050) to derive an inductive typology of egocentric networks. "
+        "Combining over 40 survey descriptors into seven core dimensions (such as non-kin interaction, kin proximity, kin support, church, and work involvement), they reliably placed respondents into seven distinct profiles: “career-and-friends” (24%), “family-and-community” (20%), “family-only” (16%), “untethered” (8%), “energetic” (7%), “withdrawn” (6%), and “home-and-church” (5%)."
+    ))
+    lit_elems.append(make_body_p(
+        "Subsequent scholarship extended this compositional paradigm to large national panels and vulnerable populations. "
+        "Laier et al. (2022) applied the Random Forest framework to the German Socio-Economic Panel (SOEP, N = 8,341), identifying fine-grained compositional types based on core discussion networks to show how relational repertoires evolve across the life course. "
+        "Pelle and Pappadà (2021) developed a distance-based clustering methodology for mixed-type survey data from the Italian National Statistical Institute (N = 4,495), grouping elderly individuals living alone into distinct vulnerability profiles based on contact frequency, support type, and kin availability. "
+        "Extending this logic to romantic dyads, Kennedy et al. (2023) introduced the concept of “duocentric networks” among low-income newlyweds (N = 207), clustering couples according to spousal network overlap and the balance of family versus friend ties to reveal how shared relational ecologies shape marital support."
+    ))
+    lit_elems.append(make_body_p(
+        "Yet, as McCarty (2002) argued in an early intervention, compositional summaries treat the personal network as an unordered collection of alters, completely obscuring the structural patterns connecting alters to one another. "
+        "McCarty showed that eliciting large personal networks (60 alters and 1,770 evaluated pairs) reveals substantial structural heterogeneity in network density, component counts, and cohesive subgroups that cannot be predicted from ego–alter attributes. "
+        "Because the topological geometry of alter–alter ties governs resource flows, social capital, normative constraints, and behavioral autonomy (Burt, 1992; Coleman, 1988; Granovetter, 1973), classifying personal networks strictly by their structural topology provides a more direct window into the relational mechanisms that organize social life."
+    ))
+
+    # Subsection 2
+    lit_elems.append(make_heading_p("Deductive Theoretical Archetypes vs. Inductive Clustering", 2))
+    lit_elems.append(make_body_p(
+        "The pursuit of purely structural typologies reached a major turning point with Bidart et al. (2018), who analyzed longitudinal qualitative and network data from young adults in France (N = 87). "
+        "Rejecting compositional descriptors, Bidart et al. formulated six theoretical archetypes defined solely by alter–alter graph metrics: “Regular Dense” (small, single-clique enclosures), “Centered Dense” (dense cores surrounded by peripheral nodes), “Centered Star” (radial networks dominated by central broker alters), “Segmented” (decentralized, disconnected components), “Pearl Collar” (multiple distinct cliques linked sequentially in a ring or pathway), and “Dispersed” (fragmented, sparse collections of isolates). "
+        "To assign networks to these archetypes, they proposed a deductive classification tree based on heuristic cutoff values for alter–alter density, Freeman betweenness centralization (> 0.20), diameter, and component shares. "
+        "While theoretically compelling, Bidart et al.’s framework relied on subjective cutoffs derived from a modest sample, raising questions about whether their archetypes reflected universal structural forms or idiosyncratic artifacts of their analytical rules."
+    ))
+    lit_elems.append(make_body_p(
+        "To evaluate this question systematically, Vacca (2020) conducted a comparative investigation across six diverse cross-sectional datasets (N = 1,460), encompassing immigrants in Southern Europe, disaster survivors in Florida and Ecuador, residents of segregated neighborhoods, and a representative Bay Area sample. "
+        "Vacca developed an inductive community-detection method using Girvan–Newman modularity partitioning to summarize personal network structure through three properties: the number of cohesive subgroups (≥ 3 nodes), the number of isolated dyads/singletons, and partition modularity. "
+        "By applying *k*-medoids clustering to these metrics, Vacca showed that personal network structures naturally coalesce into distinct inductive groups. "
+        "Crucially, Vacca revealed substantial discordance and cross-classification between Bidart et al.’s deductive assignments and inductive cluster solutions. "
+        "Inductive clustering demonstrated that empirical networks rarely conform cleanly to rigid theoretical boundaries, underscoring the need for data-driven classification methods that capture authentic structural variation."
+    ))
+
+    # Subsection 3
+    lit_elems.append(make_heading_p("Cohesion, Fragmentation, and Hierarchical Deconstruction", 2))
+    lit_elems.append(make_body_p(
+        "Parallel to the Bidart–Vacca contributions, a complementary line of scholarship has examined the fundamental dimensions underlying structural variation. "
+        "In representative urban surveys in Spain (N = 403), Maya-Jariego and Holgado (2015) used exploratory factor analysis on density, centralization, clique counts, and components, showing that personal network variability is organized along two primary axes: structural cohesion and fragmentation. "
+        "Building on this foundation, Maya-Jariego (2021) developed a structural classification based on centralization, number of cliques, and component counts, identifying four empirical ego-network types: “dense,” “intermediate,” “clustered,” and “fragmented” networks. "
+        "These studies showed that individual differences in interpersonal environments are primarily structured by the tension between cohesive solidarity and subgroup fragmentation."
+    ))
+    lit_elems.append(make_body_p(
+        "Moving beyond static graph metrics, Maya-Jariego and González-Tinoco (2023) introduced a “hierarchical deconstruction procedure” that evaluates network topology through the iterative elimination of nodes with the highest betweenness centrality. "
+        "Analyzing longitudinal networks from 69 university students, they found that dense, highly cohesive networks display prolonged resistance to fragmentation, whereas networks organized around brokerage deconstruct rapidly into disjoint components. "
+        "This iterative deconstruction showed that personal networks possess hierarchical, nested subgroup architectures that determine their resilience to disruption."
+    ))
+    lit_elems.append(make_body_p(
+        "Most recently, González-Casado et al. (2024) addressed the pervasive critique that previous typology studies relied on ad-hoc, arbitrarily selected graph metrics. "
+        "Analyzing four extensive datasets across Spain and Ecuador, they applied systematic dimensionality reduction (PCA and UMAP) across a comprehensive battery of over 14 topological metrics (including transitivity, path length, degree dispersion, modularity, and centralization). "
+        "Their findings showed that the structural space of personal networks is overwhelmingly governed by two universal axes: (1) global cohesion (the fundamental mathematical tradeoff between network size and density) and (2) internal structural differentiation (the balance between modular community segregation and centralized brokerage)."
+    ))
+
+    # Subsection 4
+    lit_elems.append(make_heading_p("Psychological Dispositions and Contextual Horizons: The Unresolved Gaps", 2))
+    lit_elems.append(make_body_p(
+        "Finally, an emerging line of work connects structural network typologies to individual agency and psychological dispositions. "
+        "Maya-Jariego et al. (2020) examined the relationship between Big Five personality traits, psychological sense of community, and personal network structure across 100 adults. "
+        "Using modified triadic censuses and global graph metrics, they found that Emotional Stability was positively correlated with network density and closed triads, while psychological sense of community was strongly associated with cohesive triadic embedding. "
+        "However, their sample was cross-sectional and exploratory, leading the authors to emphasize that future scholarship must incorporate validated personality inventories into multivariate typology models."
+    ))
+    lit_elems.append(make_body_p(
+        "Despite these significant methodological advances, the existing literature on personal network typologies exhibits four critical gaps: "
+        "First, virtually all prior structural typology studies (González-Casado et al., 2024; Maya-Jariego, 2021; McCarty, 2002; Vacca, 2020) rely strictly on single cross-sectional snapshots. Even longitudinal studies (Bidart et al., 2018; Maya-Jariego & González-Tinoco, 2023) lacked the sample scale or analytical framework to model possible state transitions across structural types. Accordingly, whether personal network types represent permanent individual traits or dynamic developmental regimes through which individuals transition over time remains an open empirical question. "
+        "Second, methodologically, researchers remain trapped between Bidart et al.’s transparent but arbitrary manual heuristics and Vacca’s or González-Casado et al.’s inductive clustering algorithms, which assign cluster memberships within a given sample as an algorithmic “black box” without providing explicit, portable decision rules that other scholars can readily apply. "
+        "Thirdly, prior studies have largely treated personal networks as self-contained interpersonal systems or compared aggregate national populations without modeling the immediate organizational foci (Feld, 1981) in which relationships are forged. How much of the variation in personal network architecture is driven by meso-level institutional sorting (such as residential dormitories or academic curricula) versus individual tendencies to select particular types of alters is still not known. "
+        "Finally, typological research has remained almost entirely structural and descriptive, focusing on defining and comparing topological forms without examining how different network structures systematically shape substantive social support, relational multiplexity, and affective tie closeness."
+    ))
+    lit_elems.append(make_body_p(trans_p_text))
+
+    for offset, elem in enumerate(lit_elems):
+        body.insert(data_idx + offset, elem)
+
+    print(f"  [Lit Review] Successfully injected {len(lit_elems)} elements before 'Data and Analytical Sample'.")
+
+    for offset, elem in enumerate(lit_elems):
+        body.insert(data_idx + offset, elem)
+
+    print(f"  [Lit Review] Successfully injected {len(lit_elems)} elements before 'Data and Analytical Sample'.")
+
+def update_references_if_needed(body, ns):
+    complete_references = [
+        "Antonucci, T. C., Ajrouch, K. J., & Birditt, K. S. (2013). The convoy model: Explaining social relations from a multidisciplinary perspective. *The Gerontologist*, 54(1), 82–92. https://doi.org/10.1093/geront/gnt118",
+        "Bidart, C., Degenne, A., & Grossetti, M. (2018). Personal network typologies: A structural approach. *Social Networks*, 54, 1–11. https://doi.org/10.1016/j.socnet.2017.11.003",
+        "Breiman, L., Friedman, J. H., Olshen, R. A., & Stone, C. J. (1984). *Classification and regression trees*. Wadsworth & Brooks/Cole.",
+        "Burt, R. S. (1992). *Structural holes: The social structure of competition*. Harvard University Press.",
+        "Coleman, J. S. (1988). Social capital in the creation of human capital. *American Journal of Sociology*, 94, S95–S120. https://doi.org/10.1086/228943",
+        "Feld, S. L. (1981). The focused organization of social ties. *American Journal of Sociology*, 86(5), 1015–1035. https://doi.org/10.1086/227352",
+        "Fischer, C. S. (1982). *To dwell among friends: Personal networks in town and city*. University of Chicago Press.",
+        "Giannella, E., & Fischer, C. S. (2016). An inductive typology of egocentric networks. *Social Networks*, 47, 15–23. https://doi.org/10.1016/j.socnet.2016.04.003",
+        "González-Casado, M. A., Gonzales, G., Molina, J. L., & Sánchez, A. (2024). Towards a general method to classify personal network structures. *Social Networks*, 78, 265–278. https://doi.org/10.1016/j.socnet.2024.01.002",
+        "Granovetter, M. S. (1973). The strength of weak ties. *American Journal of Sociology*, 78(6), 1360–1380. https://doi.org/10.1086/225469",
+        "Kennedy, D. P., Bradbury, T. N., & Karney, B. R. (2023). Typologies of duocentric networks among low-income newlywed couples. *Network Science*, 11(4), 632–656. https://doi.org/10.1017/nws.2023.16",
+        "Laier, B., Hennig, M., & Hundsdorfer, S. (2022). An inductive typology of egocentric networks with data from the Socio-Economic Panel. *Social Networks*, 71, 131–142. https://doi.org/10.1016/j.socnet.2022.07.001",
+        "Lin, N. (2001). *Social capital: A theory of social structure and action*. Cambridge University Press. https://doi.org/10.1017/CBO9780511815447",
+        "Liu, S., Hachen, D., Lizardo, O., Poellabauer, C., Striegel, A., & Milenković, T. (2018). Network analysis of the NetHealth data: Exploring co-evolution of individuals’ social network positions and physical activities. *Applied Network Science*, 3(1), 45. https://doi.org/10.1007/s41109-018-0103-2",
+        "Marsden, P. V. (1987). Core discussion networks of Americans. *American Sociological Review*, 52(1), 122–131. https://doi.org/10.2307/2095397",
+        "Maya-Jariego, I. (2021). Building a structural typology of personal networks: Individual differences in the cohesion of interpersonal environment. *Social Networks*, 64, 173–180. https://doi.org/10.1016/j.socnet.2020.09.004",
+        "Maya-Jariego, I., & González-Tinoco, E. (2023). Use of a hierarchical deconstruction procedure for the classification of personal networks: Exploring nested groups around you. *Social Networks*, 73, 20–29. https://doi.org/10.1016/j.socnet.2022.12.003",
+        "Maya-Jariego, I., & Holgado, D. (2015). Living in the metropolitan area: Correlation of interurban mobility with the structural cohesion of personal networks and the originative sense of community. *Psychosocial Intervention*, 24(3), 185–190. https://doi.org/10.1016/j.psi.2015.09.001",
+        "Maya-Jariego, I., Letina, S., & González Tinoco, E. (2020). Personal networks and psychological attributes: Exploring individual differences in personality and sense of community and their relationship to the structure of personal networks. *Network Science*, 8(2), 168–188. https://doi.org/10.1017/nws.2019.15",
+        "McCarty, C. (2002). Structure in personal networks. *Journal of Social Structure*, 3(1).",
+        "Offer, S., & Fischer, C. S. (2018). Does help discussion build closer ties? In J. Youm, E. O. Laumann, & K. Lee (Eds.), *Social networks and the life course* (pp. 45–68). Springer. https://doi.org/10.1007/978-3-319-71544-5_3",
+        "Pelle, E., & Pappadà, R. (2021). A clustering procedure for mixed-type data to explore ego network typologies: An application to elderly people living alone in Italy. *Statistical Methods & Applications*, 30(5), 1507–1533. https://doi.org/10.1007/s10260-021-00591-5",
+        "Perry, B. L., Pescosolido, B. A., & Borgatti, S. P. (2018). *Egocentric network analysis: Foundations, methods, and models*. Cambridge University Press. https://doi.org/10.1017/9781316443255",
+        "Sepulvado, B., Wood, M., Wang, C., Fridmanski, E., Chandler, M., Lizardo, O., & Hachen, D. (2020). Predicting homophily and social network connectivity from dyadic behavioral similarity trajectory clusters. *Social Science Computer Review*, 40(1), 186–205. https://doi.org/10.1177/0894439320923123",
+        "Smith, M. L. (2020). Introduction to the special issue on ego networks. *Network Science*, 8(2), 139–141. https://doi.org/10.1017/nws.2020.17",
+        "Vacca, R. (2020). Structure in personal networks: Constructing and comparing typologies. *Network Science*, 8(2), 142–167. https://doi.org/10.1017/nws.2019.29",
+        "Wang, C., Lizardo, O., & Hachen, D. S. (2020). Neither influence nor selection: Examining co-evolution of political orientation and social networks in the NetSense and NetHealth studies. *PLOS ONE*, 15(5), e0233458. https://doi.org/10.1371/journal.pone.0233458"
+    ]
+
+    ref_idx = None
+    body_list = list(body)
+    for idx, elem in enumerate(body_list):
+        t = ''.join(elem.itertext()).strip()
+        if t == "References":
+            ref_idx = idx
+            break
+
+    if ref_idx is not None:
+        for elem in body_list[ref_idx + 1:]:
+            body.remove(elem)
+        for r_text in complete_references:
+            body.append(make_ref_p(r_text))
+        print(f"  [References] Replaced references with {len(complete_references)} APA entries.")
+
+def inject_support_section_if_missing(body, root_rels, all_files, ns, tables):
+    # Check if section is already present in the body
+    for elem in body:
+        text = ''.join(elem.itertext()).strip()
+        if "Functional Social Support" in text or "Figure 11." in text or "Table 8." in text:
+            print("  [Support Section] Section already present in document. Skipping structural injection.")
+            return
+
+    # Find insertion point: immediately before "Discussion and Conclusion"
+    target_idx = None
+    body_children = list(body)
+    for i, elem in enumerate(body_children):
+        text = ''.join(elem.itertext()).strip()
+        if text.startswith("Discussion and Conclusion") or text == "Discussion and Conclusion":
+            target_idx = i
+            break
+
+    if target_idx is None:
+        print("  [Support Section Warning] Could not find 'Discussion and Conclusion' heading to insert before.")
+        return
+
+    print(f"  [Support Section] Inserting Section 8 (Functional Support), Table 8, and Figure 11 at element index {target_idx}...")
+
+    # Ensure Table 8 is generated
+    if "Table 8" not in tables:
+        h8, r8 = parse_markdown_table("cache/table8_social_support.md")
+        if h8 and r8:
+            tables["Table 8"] = create_apa_table_xml(h8, r8, [2560, 1100, 1100, 1100, 1100, 1100, 800, 500])
+
+    fig11_path = "Plots/fig11_social_support_profiles.png"
+    if not os.path.exists(fig11_path):
+        print(f"  [Support Section Error] {fig11_path} not found.")
+        return
+
+    existing_rids = [e.get('Id') for e in root_rels if e.get('Id', '').startswith('rId')]
+    max_rid_num = max([int(r[3:]) for r in existing_rids if r[3:].isdigit()] + [0])
+    existing_images = [f for f in all_files.keys() if f.startswith('word/media/image')]
+    max_img_num = max([int(re.search(r'image(\d+)', f).group(1)) for f in existing_images if re.search(r'image(\d+)', f)] + [0])
+
+    new_rid_num = max_rid_num + 1
+    new_img_num = max_img_num + 1
+    new_rid = f"rId{new_rid_num}"
+    img_name = f"image{new_img_num}.png"
+    target_media = f"word/media/{img_name}"
+
+    with open(fig11_path, "rb") as f_img:
+        all_files[target_media] = f_img.read()
+
+    rel_elem = ET.Element('{http://schemas.openxmlformats.org/package/2006/relationships}Relationship')
+    rel_elem.set('Id', new_rid)
+    rel_elem.set('Type', 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/image')
+    rel_elem.set('Target', f'media/{img_name}')
+    root_rels.append(rel_elem)
+
+    elems_to_insert = []
+
+    # 1. Heading 1
+    h1_xml = (
+        '<w:p xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">'
+        '<w:pPr><w:pStyle w:val="Heading1"/><w:suppressAutoHyphens/><w:spacing w:before="300" w:after="60"/><w:ind w:left="0" w:right="0" w:firstLine="0" w:hanging="0"/><w:jc w:val="left"/></w:pPr>'
+        '<w:r><w:t>Functional Social Support and Relational Multiplexity Across Typologies</w:t></w:r>'
+        '</w:p>'
+    )
+    elems_to_insert.append(ET.fromstring(h1_xml))
+
+    # 2. Intro paragraph
+    p1_xml = (
+        '<w:p xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">'
+        '<w:pPr><w:pStyle w:val="Normal"/><w:suppressAutoHyphens/><w:spacing w:line="360" w:lineRule="auto" w:before="0" w:after="0"/><w:ind w:left="0" w:right="0" w:firstLine="720"/><w:jc w:val="both"/></w:pPr>'
+        '<w:r><w:t>A foundational divide in egocentric research separates the compositional tradition—which focuses on relational content, functional aid, and social support (Giannella &amp; Fischer, 2016; Laier et al., 2022; Pelle &amp; Pappadà, 2021)—from the purely structural tradition (Bidart et al., 2018; González-Casado et al., 2024; McCarty, 2002; Vacca, 2020). By examining alter-level support evaluations within our analytic sample (N = 580 participants with complete support records), we directly bridge this gap, evaluating whether distinct topological configurations systematically shape relational multiplexity and functional support bandwidth. Table 8 reports descriptive statistics and analysis of variance across network typologies for eight support and relationship characteristics. Figure 11 visualizes these functional support profiles and the structural multiplexity gradient.</w:t></w:r>'
+        '</w:p>'
+    )
+    elems_to_insert.append(ET.fromstring(p1_xml))
+
+    # 3. Table 8 Caption
+    t8_cap_xml = (
+        '<w:p xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">'
+        '<w:pPr><w:suppressAutoHyphens/><w:spacing w:before="120" w:after="60"/><w:ind w:left="0" w:right="0" w:firstLine="0" w:hanging="0"/><w:jc w:val="left"/></w:pPr>'
+        '<w:r><w:rPr><w:b/></w:rPr><w:t>Table 8. Social Support Provision and Functional Multiplexity Across Personal Network Typologies</w:t></w:r>'
+        '</w:p>'
+    )
+    elems_to_insert.append(ET.fromstring(t8_cap_xml))
+
+    # 4. Table 8 table
+    if "Table 8" in tables:
+        elems_to_insert.append(ET.fromstring(tables["Table 8"]))
+
+    # 5. Table 8 Note
+    t8_note_xml = (
+        '<w:p xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">'
+        '<w:pPr><w:pStyle w:val="Heading4"/><w:suppressAutoHyphens/><w:spacing w:before="60" w:after="120"/><w:ind w:left="0" w:right="0" w:firstLine="0" w:hanging="0"/><w:jc w:val="left"/></w:pPr>'
+        '<w:r><w:rPr><w:b/></w:rPr><w:t>Note: </w:t></w:r>'
+        '<w:r><w:t>Sample restricted to N = 580 participants with complete alter support evaluations across Waves 2 through 8. Standard deviations are reported in parentheses. Support Multiplexity Index reflects the average count of functional support types (socializing, advice, emotional comfort, financial assistance) provided per alter (0 to 4 scale). High-multiplex alters represent the percentage of alters providing three or more distinct support functions. F-statistics and p-values are derived from one-way analysis of variance across network typologies.</w:t></w:r>'
+        '</w:p>'
+    )
+    elems_to_insert.append(ET.fromstring(t8_note_xml))
+
+    # 6. Figure 11 Drawing
+    draw_xml = create_drawing_xml(new_rid, fig11_path)
+    elems_to_insert.append(ET.fromstring(draw_xml))
+
+    # 7. Figure 11 Caption
+    f11_cap_xml = (
+        '<w:p xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">'
+        '<w:pPr><w:suppressAutoHyphens/><w:spacing w:before="60" w:after="60"/><w:ind w:left="0" w:right="0" w:firstLine="0" w:hanging="0"/><w:jc w:val="left"/></w:pPr>'
+        '<w:r><w:rPr><w:b/></w:rPr><w:t>Figure 11. Functional Social Support Profiles and Multiplexity Gradient Across Personal Network Typologies.</w:t></w:r>'
+        '</w:p>'
+    )
+    elems_to_insert.append(ET.fromstring(f11_cap_xml))
+
+    # 8. Figure 11 Note
+    f11_note_xml = (
+        '<w:p xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">'
+        '<w:pPr><w:pStyle w:val="Heading4"/><w:suppressAutoHyphens/><w:spacing w:before="60" w:after="120"/><w:ind w:left="0" w:right="0" w:firstLine="0" w:hanging="0"/><w:jc w:val="left"/></w:pPr>'
+        '<w:r><w:rPr><w:b/></w:rPr><w:t>Note: </w:t></w:r>'
+        '<w:r><w:t>Panel A displays the percentage of nominated alters providing specific functional support types across personal network typologies with 95% confidence interval error bars. Panel B displays the monotonic progression of high-multiplex alters (≥ 3 support types) and tie closeness (% especially close alters) across network configurations.</w:t></w:r>'
+        '</w:p>'
+    )
+    elems_to_insert.append(ET.fromstring(f11_note_xml))
+
+    # 9. Discussion paragraph 1
+    p2_xml = (
+        '<w:p xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">'
+        '<w:pPr><w:pStyle w:val="Normal"/><w:suppressAutoHyphens/><w:spacing w:line="360" w:lineRule="auto" w:before="0" w:after="0"/><w:ind w:left="0" w:right="0" w:firstLine="720"/><w:jc w:val="both"/></w:pPr>'
+        '<w:r><w:t>Table 8 and Figure 11 show that while social companionship (hanging out) represents a universal baseline of collegiate sociability (~88% to 93% across all configurations), substantive functional support exhibits a pronounced, monotonic structural gradient across typologies. Informational advice rises systematically from the expansive Pearl Collar configuration (61.6%) and Segmented networks (63.6%) to Centered Stars (70.5%) and reaches its peak in Regular Dense networks (78.0%; F = 8.47, p &lt; 0.001). Emotional comfort exhibits an identical progression, rising from 55.3% in Pearl Collar networks to 72.5% in Regular Dense networks (F = 5.46, p = 0.001), while financial assistance displays a matching concentration (14.2% in Pearl Collar vs. 23.7% in Regular Dense; F = 5.79, p &lt; 0.001).</w:t></w:r>'
+        '</w:p>'
+    )
+    elems_to_insert.append(ET.fromstring(p2_xml))
+
+    # 10. Discussion paragraph 2
+    p3_xml = (
+        '<w:p xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">'
+        '<w:pPr><w:pStyle w:val="Normal"/><w:suppressAutoHyphens/><w:spacing w:line="360" w:lineRule="auto" w:before="0" w:after="0"/><w:ind w:left="0" w:right="0" w:firstLine="720"/><w:jc w:val="both"/></w:pPr>'
+        '<w:r><w:t>Crucially, this functional gradient reflects a fundamental structural tradeoff between topological reach and relational bandwidth. As shown in Panel B of Figure 11, the Support Multiplexity Index—measuring the average number of functional supports provided per alter—increases monotonically from 2.24 in Pearl Collar networks to 2.62 in Regular Dense networks (F = 6.90, p &lt; 0.001). Similarly, the share of “high-multiplex” alters providing three or more distinct forms of support rises from 47.9% to 65.6% (F = 6.24, p &lt; 0.001). This functional concentration is underpinned by emotional intimacy: alters classified as “especially close” account for only 60.5% of contacts in Pearl Collar networks, but surge to 82.9% in Regular Dense networks (F = 14.28, p &lt; 0.001), accompanied by elevated interpersonal trust (F = 5.28, p = 0.001). Expansive, chained network configurations like the Pearl Collar maximize structural breadth and bridge across modular student worlds, but they do so by diluting the proportion of multiplex, emotionally intensive, and financially supportive ties. Conversely, small, cohesive cliques sacrifice structural reach and external bridging in order to maximize dense mutual trust, emotional solidarity, and multi-functional safety nets.</w:t></w:r>'
+        '</w:p>'
+    )
+    elems_to_insert.append(ET.fromstring(p3_xml))
+
+    for offset, new_elem in enumerate(elems_to_insert):
+        body.insert(target_idx + offset, new_elem)
+
+    print(f"  [Support Section] Successfully inserted {len(elems_to_insert)} elements before 'Discussion and Conclusion'.")
+
 def sync_docx(in_docx, out_docx, inject_tables=False):
     with zipfile.ZipFile(in_docx, "r") as zin:
         xml_bytes = zin.read("word/document.xml")
@@ -197,6 +601,12 @@ def sync_docx(in_docx, out_docx, inject_tables=False):
         'pic': 'http://schemas.openxmlformats.org/drawingml/2006/picture'
     }
     body = doc_tree.find('w:body', ns)
+
+    # 1. Pre-load table XMLs and check for structural additions
+    tables = generate_table_xmls()
+    inject_literature_review_and_intro(body, ns)
+    update_references_if_needed(body, ns)
+    inject_support_section_if_missing(body, root_rels, all_files, ns, tables)
 
     # 11-figure mapping adhering strictly to AGENTS.md Section 4
     figure_map = {
@@ -261,7 +671,8 @@ def sync_docx(in_docx, out_docx, inject_tables=False):
         "{{FIGURE_7}}": "Plots/fig7_comparative_decision_trees.png",
         "{{FIGURE_8}}": "Plots/fig8_longitudinal_transitions.png",
         "{{FIGURE_9}}": "Plots/fig9_demographic_dumbbells.png",
-        "{{FIGURE_10}}": "Plots/fig10_personality_profiles.png"
+        "{{FIGURE_10}}": "Plots/fig10_personality_profiles.png",
+        "{{FIGURE_11}}": "Plots/fig11_social_support_profiles.png"
     }
 
     existing_rids = [e.get('Id') for e in root_rels if e.get('Id', '').startswith('rId')]
@@ -306,7 +717,8 @@ def sync_docx(in_docx, out_docx, inject_tables=False):
             "{{TABLE_4}}": "Table 4",
             "{{TABLE_5}}": "Table 5",
             "{{TABLE_6}}": "Table 6",
-            "{{TABLE_7}}": "Table 7"
+            "{{TABLE_7}}": "Table 7",
+            "{{TABLE_8}}": "Table 8"
         }
 
         injected_tables = set()

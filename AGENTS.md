@@ -762,31 +762,18 @@ scale_fill_manual(values = COLOR_CREDIBILITY, name = "Directional Credibility")
 - **Data Source:** NetHealth Study (University of Notre Dame Class of 2019, 8 waves over 3 years, Fall 2015–Spring 2018).
 - **Analytic Sample:** $N = 701$ college students with $\ge 3$ unique cumulative alters and non-zero alter-alter connectivity (35,912 ego-alter nominations; 174,748 alter-alter ties).
 
-### 2. Theoretical & Methodological Grounding: Building on and Extending Vacca (2020) & Bidart et al. (2018)
-The project investigates whether egocentric relational environments coalesce into discrete structural typologies rather than continuous, unstructured variation:
-- **Bidart et al. (2018, *Social Networks*)**: Proposed six theoretical archetypes based on a small sample of French young adults ($N < 100$) using manual inspection and discriminant analysis on six metrics: Regular Dense, Centered Dense, Centered Star, Segmented, Pearl Collar, and Dispersed.
-- **Vacca (2020, *Network Science*)**: Extended structural typology research by comparing Bidart et al.'s framework against an inductive, subgroup-based method ($T_1$) using Girvan–Newman (GN) community detection across six cross-sectional datasets (migrants, disaster survivors, segregated neighborhoods, Bay Area residents). Vacca demonstrated that personal network structure can be summarized using three subgroup measures (subgroups $\ge 3$ nodes, singletons/dyads, and partition modularity) and clustered via $k$-medoids.
+### 2. Theoretical & Methodological Grounding: Building on and Extending the Structural Typology Literature
+The project investigates whether egocentric relational environments coalesce into discrete structural typologies rather than continuous, unstructured variation, synthesizing the literature from `lit/previous typologies/`:
+- **Bidart et al. (2018, *Social Networks*)**: Proposed six theoretical archetypes based on French young adults ($N < 100$) using manual inspection and heuristic cutoffs: Regular Dense, Centered Dense, Centered Star, Segmented, Pearl Collar, and Dispersed.
+- **Vacca (2020, *Network Science*)**: Extended structural typologies across six diverse datasets ($N = 1,460$) using Girvan–Newman community detection (subgroups $\ge 3$ nodes, singletons/dyads, and modularity) clustered via $k$-medoids, revealing substantial cross-classification against Bidart's deductive heuristics.
+- **Compositional vs. Structural Foundations**: Contrast compositional profiling (Giannella & Fischer 2016; Laier et al. 2022; Pelle & Pappadà 2021; Kennedy et al. 2023) against purely topological graph architecture (McCarty 2002), demonstrating that alter–alter connectivity provides a distinct structural window into social capital.
+- **Cohesion, Fragmentation & Deconstruction**: Grounded in factor analyses of urban personal networks (Maya-Jariego & Holgado 2015; Maya-Jariego 2021), hierarchical betweenness deconstruction (Maya-Jariego & González-Tinoco 2023), and multidimensional scaling (González-Casado et al. 2024), establishing that global cohesion and internal structural differentiation form universal organizing axes of egocentric space.
 
-#### How Our Study Builds on Vacca (2020):
-1. **Topological Over Attribute-Based Classification**: Like Vacca, we reject purely compositional/attribute-based classifications in favor of formal alter-alter network topology.
-2. **Subgroup and Cohesion Metrics**: We systematically evaluate community modularity (Louvain), component fragmentation, main component share (LCC), and density alongside betweenness centralization and diameter.
-3. **Inductive Unsupervised Clustering**: Like Vacca, we use unsupervised clustering and formal cluster validation heuristics rather than subjective assignment.
-4. **Medoid Graph Representation**: Building on Vacca's emphasis on medoid solutions, we identify empirical medoids (exemplar participants minimizing distance to centroids) and render their actual alter-alter graphs.
-
-#### How Our Study Differs from and Advances Beyond Vacca (2020):
-1. **Longitudinal Dynamics vs. Cross-Sectional Snapshots**:
-   - *Vacca (2020)* examined cross-sectional datasets with static network measures.
-   - *Our Study* leverages eight multi-wave survey administrations across three years to examine:
-     - **Cumulative Personal Networks** ($N = 701$), capturing the full volume of relational capital accumulated across collegiate life ($\bar{x} = 28.6$ alters, max $= 83$).
-     - **Semester-to-Semester Markov State Transitions (HMMs)**: We model $N = 1,900$ transitions across 2,821 ego-wave observations. While Regular Dense networks exhibit high persistence (70.8%), students experience substantial structural mobility, with expansive Pearl Collar configurations emerging cumulatively across academic years.
-2. **Empirical Classification Decision Tree with Data-Driven Cutoffs**:
-   - Rather than relying on black-box cluster assignments or Bidart's heuristic cutoffs, we train a classification tree (`rpart`) that achieves **92.9% accuracy**.
-   - We discover that in residential campus environments, alter-alter density ($\ge 0.55$) is the primary root splitting criterion rather than betweenness centralization ($> 0.20$), and we provide explicit, reproducible cutoffs for all four typologies.
-3. **Multilevel Contextual Nesting (Dorm & Major Clustering)**:
-   - Vacca compared aggregate distributions across disparate regional datasets.
-   - We estimate multilevel categorical logit models (`mclogit::mblogit`) with crossed random intercepts for freshman residence halls ($J = 29$) and academic majors ($J = 43$). We quantify institutional sorting, finding substantial clustering attributable to residential dorms ($\bar{\sigma}^2 = 0.164$) and academic disciplines ($\bar{\sigma}^2 = 0.268$).
-4. **Psychological Grounding (Big Five Personality)**:
-   - We integrate validated Big Five personality dimensions, demonstrating that Extraversion ($b = +0.81$, $p < 0.001$) and Conscientiousness ($b = -0.85$, $p < 0.01$) directly predict avoidance of closed network bubbles, establishing an empirical bridge between individual dispositions and network topology.
+#### Four Critical Literature Gaps Resolved by Our Study:
+1. **The Cross-Sectional Constraint vs. Longitudinal Markov Transitions**: Prior studies relied on static cross-sections. We model $N = 1,900$ semester-to-semester Markov state transitions across eight waves over three years, tracking the persistence of Regular Dense enclaves (70.8%) alongside developmental mobility into cumulative Pearl Collar networks.
+2. **Heuristic vs. Black-Box Dichotomy vs. Empirical Decision Tree**: Rather than arbitrary cutoffs or black-box clusters, our `rpart` decision tree achieves **92.9% accuracy**, identifying alter–alter density ($\ge 0.55$) as the primary root split in residential collegiate contexts and establishing portable topological rules.
+3. **The Contextual Void vs. Multilevel Crossed Random Effects**: Prior work treated personal networks in isolation or compared disparate regional surveys. We estimate multilevel categorical logit models (`mclogit::mblogit`) with crossed random intercepts for freshman residence halls ($J = 29$, $\bar{\sigma}^2 = 0.164$) and academic majors ($J = 43$, $\bar{\sigma}^2 = 0.268$), partitioning institutional sorting alongside validated Big Five personality dispositions (Extraversion $b = +0.81$, Conscientiousness $b = -0.85$).
+4. **Lack of Downstream Functional Support Analysis vs. Social Capital Regimes**: Typology research remained purely topological. We evaluate alter-level functional support across four domains (companionship, advice, comfort, financial aid) alongside multiplexity and trust ($N = 580$, Table 8, Figure 11), proving that expansive modular topologies trade off tie multiplexity and emotional solidarity in exchange for structural reach.
 
 ### 3. Current Directory Structure & Asset Taxonomy
 ```
@@ -813,7 +800,8 @@ project/
 │   ├── fig7_comparative_decision_trees.png
 │   ├── fig8_longitudinal_transitions.png
 │   ├── fig9_demographic_dumbbells.png
-│   └── fig10_personality_profiles.png
+│   ├── fig10_personality_profiles.png
+│   └── fig11_social_support_profiles.png
 ├── cache/                            # Pre-compiled APA markdown tables
 │   ├── table1_structural_metrics.md
 │   ├── table2_cluster_selection.md
@@ -821,7 +809,8 @@ project/
 │   ├── table4_regressions.md
 │   ├── table5_big5_regression.md
 │   ├── table6_markov_transitions.md
-│   └── table7_multilevel_categorical.md
+│   ├── table7_multilevel_categorical.md
+│   └── table8_social_support.md
 ├── tabs/                             # Formatted regression HTML & PNG tables
 │   ├── reg-tab-gender.*
 │   ├── reg-tab-foreign.*
@@ -835,11 +824,11 @@ project/
 
 ### 4. Tables and Figures Inventory in Live Google Doc (Strict Sequential Order)
 - **Figure 1**: Cumulative Ego-Network Size Distribution Across NetHealth Participants (`Plots/fig1_size_distribution.png`)
-- **Figure 2**: Cluster Partition Quality Diagnostics Across Candidate Solutions ($k = 2$ to 10; Elbow & Silhouette criteria) (`Plots/fig2_cluster_selection.png`)
 - **Table 1**: Descriptive Statistics of Personal Network Structural Metrics by Typology ($N = 701$) (`cache/table1_structural_metrics.md`)
+- **Figure 4**: Pairwise Pearson Correlation Heatmap Across Personal Network Metrics (`Plots/fig5_metric_correlations.png`; placed under `# Structural Network Typologies` following standardized feature introduction)
+- **Figure 2**: Cluster Partition Quality Diagnostics Across Candidate Solutions ($k = 2$ to 10; Elbow & Silhouette criteria) (`Plots/fig2_cluster_selection.png`)
 - **Table 2**: Cluster Partition Quality Diagnostics Across Candidate Solutions ($k = 2$ to 10; WSS, % Variance Explained, Silhouette, Calinski-Harabasz) (`cache/table2_cluster_selection.md`)
-- **Figure 3**: Standardized Topological Profiles Across Personal Network Typologies ($2 \times 2$ comparative grid displaying $z$-score deviations from cohort mean in standard deviation units; replaces old squished 1x5 lollipop layout) (`Plots/fig3_cluster_profiles.png`)
-- **Figure 4**: Pairwise Pearson Correlation Heatmap Across Personal Network Metrics (`Plots/fig5_metric_correlations.png`)
+- **Figure 3**: Standardized Topological Profiles Across Personal Network Typologies ($2 \times 2$ comparative grid displaying $z$-score deviations from cohort mean with unclipped axis range $[-2.5, +2.6]$; Pearl Collar: $+1.19$ size, $+1.04$ diam, $+0.86$ mod, $+0.19$ cent, $-0.82$ dens; Segmented: $-0.50$ cent, $-0.35$ diam, $-0.25$ dens, $-0.09$ size, $+0.09$ mod; Centered Star: $+1.38$ cent, $+0.18$ diam, $-0.45$ size, $-0.06$ dens, $+0.01$ mod; Regular Dense: $+1.79$ dens, $-1.46$ mod, $-1.01$ size, $-0.97$ diam, $-0.83$ cent) (`Plots/fig3_cluster_profiles.png`)
 - **Figure 5**: Empirical Network Archetypes: Force-Directed Layouts of Cluster Medoids (`ggraph` stress layout) (`Plots/fig6_network_archetypes.png`)
 - **Figure 6**: Empirical Decision Tree for Classifying Personal Network Typologies (92.9% accuracy) (`Plots/fig4_decision_tree.png`)
 - **Figure 7**: Comparative Decision Tree Graphic: Bidart Theoretical Heuristics vs. NetHealth Empirical Cutoffs (`Plots/fig7_comparative_decision_trees.png`)
@@ -851,6 +840,8 @@ project/
 - **Table 6**: Multilevel Multinomial Logit with Crossed Random Effects for Residence Halls ($J = 29$) and Majors ($J = 43$) (`cache/table7_multilevel_categorical.md`)
 - **Figure 10**: Big Five Personality Trait Means Across Personal Network Typologies (`Plots/fig10_personality_profiles.png`)
 - **Table 7**: Multinomial Logistic Regression Predicting Network Typology from Big Five Personality Traits (`cache/table5_big5_regression.md`)
+- **Table 8**: Social Support Provision and Functional Multiplexity Across Personal Network Typologies ($N = 580$) (`cache/table8_social_support.md`)
+- **Figure 11**: Functional Social Support Profiles and Multiplexity Gradient Across Personal Network Typologies (`Plots/fig11_social_support_profiles.png`)
 
 ### 5. Canonical Citations for the NetHealth Study
 Any future write-up, manuscript revision, or slide deck referencing the NetHealth Study must cite the canonical project publications:
@@ -870,3 +861,6 @@ Any future write-up, manuscript revision, or slide deck referencing the NetHealt
    - Use "Gender Identity" (or "Gender") rather than "Sex".
    - Avoid using the generic adjective "robust" (reserve strictly for technical terms like "robust standard errors").
    - Every visual figure must be accompanied by its dedicated analytical discussion paragraph.
+6. **Human In-Flight Prose & Heading Preservation**: The human author continually refines headings and prose (e.g. `# Recent Developments in Personal Network Typologies` and `## Psychological Dispositions versu Contextual Effects`). Agents must NEVER hardcode old heading titles or inject duplicate blocks. Always check if the section is already present.
+7. **Dynamic Relationship ID Mapping**: Never assume fixed relationship IDs like `rId8` or media filenames like `imageX.png` because Word shifts image numbering across document saves. Always parse `word/_rels/document.xml.rels` dynamically and match via adjacent caption text.
+8. **Two-Way Local Markdown Parity**: After applying programmatic updates, always re-export `draft_manuscript.md` from the live-updated document using Pandoc (`pandoc -f docx -t gfm --wrap=none draft_updated.docx -o draft_manuscript.md`) so that the local repository mirror reflects 100% of the author's live remote formatting and text edits.

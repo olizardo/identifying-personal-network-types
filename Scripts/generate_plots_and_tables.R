@@ -134,10 +134,10 @@ p_fig3 <- ggplot(z_summary, aes(x = Z_Score, y = Metric, fill = Direction)) +
   geom_col(width = 0.55, alpha = 0.9) +
   geom_vline(xintercept = 0, color = "grey30", linewidth = 0.5) +
   geom_text(aes(label = Label, hjust = ifelse(Z_Score >= 0, -0.15, 1.15)),
-            size = 2.8, fontface = "bold", colour = "grey20") +
+            size = 3.0, fontface = "bold", colour = "grey20") +
   facet_wrap(~ Typology, ncol = 2, scales = "fixed") +
   scale_fill_manual(values = c("Above Average" = "#0072B2", "Below Average" = "#D55E00")) +
-  scale_x_continuous(limits = c(-2.0, 2.3), breaks = seq(-1.5, 1.5, 1.0), labels = function(x) paste0(x, " SD")) +
+  scale_x_continuous(limits = c(-2.5, 2.6), breaks = seq(-2.0, 2.0, 1.0), labels = function(x) paste0(x, " SD")) +
   theme_classic(base_size = 9.5) +
   theme(
     strip.background = element_rect(fill = "#f0f4f8", color = "grey70", linewidth = 0.5),
@@ -614,20 +614,17 @@ writeLines(t7_md, "cache/table7_multilevel_categorical.md")
 cat("Generating Table 8 and Figure 11 for Social Support Profiles...\n")
 
 support_alters <- netsurv_raw %>%
-  filter(!is.na(suppadv) | !is.na(suppcomf) | !is.na(supphang) | !is.na(suppfin)) %>%
+  filter(suppadv %in% c("True", "False") | suppcomf %in% c("True", "False") | 
+         supphang %in% c("True", "False") | suppfin %in% c("True", "False")) %>%
   mutate(
-    adv_num = as.numeric(suppadv == TRUE),
-    comf_num = as.numeric(suppcomf == TRUE),
-    hang_num = as.numeric(supphang == TRUE),
-    fin_num = as.numeric(suppfin == TRUE),
-    adv_num = ifelse(is.na(adv_num), 0, adv_num),
-    comf_num = ifelse(is.na(comf_num), 0, comf_num),
-    hang_num = ifelse(is.na(hang_num), 0, hang_num),
-    fin_num = ifelse(is.na(fin_num), 0, fin_num),
+    adv_num = as.numeric(suppadv %in% c("True", "TRUE", "1")),
+    comf_num = as.numeric(suppcomf %in% c("True", "TRUE", "1")),
+    hang_num = as.numeric(supphang %in% c("True", "TRUE", "1")),
+    fin_num = as.numeric(suppfin %in% c("True", "TRUE", "1")),
     multiplex_score = adv_num + comf_num + hang_num + fin_num,
     is_high_multiplex = as.numeric(multiplex_score >= 3),
     is_especially_close = as.numeric(close == "EspeciallyClose"),
-    trust_num = as.numeric(trust)
+    trust_num = suppressWarnings(as.numeric(trust))
   )
 
 ego_support <- support_alters %>%
