@@ -1,0 +1,35 @@
+\begin{table}[htbp]
+\centering
+\small
+\caption{Multilevel Multinomial Logit with Crossed Random Effects for Residence Halls and Majors}
+\label{tab:multilevel_categorical}
+\begin{tabular}{lccc}
+\toprule
+\textbf{Parameter (vs. Pearl Collar Reference)} & \textbf{Estimate} & \textbf{SE} & \textbf{$p$-value} \\
+\midrule
+\multicolumn{4}{l}{\textit{Fixed Effects: Segmented vs. Pearl Collar}} \\
+\quad Men (vs. Women) & 0.35 & (0.29) & 0.223 \\
+\quad International (vs. Domestic) & 0.23 & (0.52) & 0.663 \\
+\quad Extraversion & 0.26 & (0.18) & 0.143 \\
+\quad Conscientiousness & $-0.14$ & (0.23) & 0.549 \\
+\addlinespace
+\multicolumn{4}{l}{\textit{Fixed Effects: Centered Star vs. Pearl Collar}} \\
+\quad Men (vs. Women) & 0.20 & (0.32) & 0.541 \\
+\quad International (vs. Domestic) & 0.58 & (0.54) & 0.281 \\
+\quad Extraversion & 0.26 & (0.20) & 0.188 \\
+\quad Conscientiousness & 0.03 & (0.26) & 0.916 \\
+\addlinespace
+\multicolumn{4}{l}{\textit{Fixed Effects: Regular Dense vs. Pearl Collar}} \\
+\quad Men (vs. Women) & 0.46 & (0.39) & 0.234 \\
+\quad International (vs. Domestic) & $-0.48$ & (0.84) & 0.565 \\
+\quad Extraversion & 0.81*** & (0.24) & 0.001 \\
+\quad Conscientiousness & $-0.85$** & (0.30) & 0.004 \\
+\midrule
+\multicolumn{4}{l}{\textit{Random Intercept Variances}} \\
+\quad Residence Halls (Dormitories, $J = 29$): $\bar{\sigma}^2_{\text{dorm}}$ & 0.164 & --- & --- \\
+\quad Academic Majors ($J = 43$): $\bar{\sigma}^2_{\text{major}}$ & 0.268 & --- & --- \\
+\bottomrule
+\end{tabular}
+\vspace{1ex}
+\parbox{\linewidth}{\footnotesize \textit{Note:} Multilevel categorical logit estimates (\texttt{mclogit::mblogit}) with crossed random intercepts for freshman residence halls ($J = 29$) and academic majors ($J = 43$). Reference outcome is Pearl Collar. Model deviance = 1151.2. * $p < 0.05$, ** $p < 0.01$, *** $p < 0.001$.}
+\end{table}

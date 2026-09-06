@@ -1,0 +1,199 @@
+---
+title: "Identifying Personal Network Types: Full Replication and Extension"
+author: "Omar Lizardo"
+output: 
+  html_document:
+    toc: true
+    toc_depth: 3
+    theme: flatly
+---
+
+# Setup
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+library(here)
+library(igraph)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(patchwork)
+library(nnet)
+library(rpart)
+library(rpart.plot)
+library(gridExtra)
+library(grid)
+```
+
+# 1. Raw Data & Cumulative Ego Network Construction
+
+```{r data-construction}
+# Load raw survey data
+edges_raw <- read.csv(here("raw_dat", "alter_alter_edges.csv"))
+netsurv_raw <- read.csv(here("raw_dat", "network_survey.csv"))
+basic_raw <- read.csv(here("raw_dat", "basic_survey.csv"))
+
+all_egos <- sort(unique(netsurv_raw$egoid))
+
+# Compute structural metrics for each participant across waves 1-8
+compute_ego_metrics <- function(ego) {
+  alters <- sort(unique(netsurv_raw$alterid[netsurv_raw$egoid == ego]))
+  n_alters <- length(alters)
+  if (n_alters == 0) return(NULL)
+  
+  sub_edges <- edges_raw %>%
+    filter(egoid == ego, vertex1 != ego, vertex2 != ego) %>%
+    select(vertex1, vertex2) %>%
+    distinct() %>%
+    filter(vertex1 %in% alters, vertex2 %in% alters)
+  
+  n_edges <- nrow(sub_edges)
+  g <- graph_from_data_frame(sub_edges, directed = FALSE, vertices = data.frame(name = alters))
+  g <- simplify(g)
+  
+  dens <- edge_density(g)
+  if (is.na(dens)) dens <- 0
+  
+  clust <- transitivity(g, type = "global")
+  if (is.na(clust)) clust <- 0
+  
+  cent_betw <- centr_betw(g, directed = FALSE)$centralization
+  if (is.nan(cent_betw) || is.na(cent_betw)) cent_betw <- 0
+  
+  cent_deg <- centr_degree(g, mode = "all")$centralization
+  if (is.nan(cent_deg) || is.na(cent_deg)) cent_deg <- 0
+  
+  comps <- components(g)
+  n_comps <- comps$no
+  max_comp_size <- if (length(comps$csize) > 0) max(comps$csize) else 0
+  prop_lcc <- if (n_alters > 0) max_comp_size / n_alters else 0
+  
+  if (max_comp_size > 1) {
+    lgcc <- induced_subgraph(g, which(comps$membership == which.max(comps$csize)))
+    diam_lgcc <- diameter(lgcc, directed = FALSE, weights = NA)
+  } else {
+    diam_lgcc <- 0
+  }
+  
+  if (ecount(g) > 0) {
+    set.seed(123)
+    cl <- cluster_louvain(g)
+    mod <- modularity(cl)
+    if (is.nan(mod) || is.na(mod)) mod <- 0
+  } else {
+    mod <- 0
+  }
+  
+  data.frame(
+    vertex_id = ego,
+    egoid = ego,
+    size = n_alters,
+    edges = n_edges,
+    density = dens,
+    clustering = clust,
+    betweenness_centralization = cent_betw,
+    degree_centralization = cent_deg,
+    diameter = diam_lgcc,
+    modularity = mod,
+    n_components = n_comps,
+    max_comp_size = max_comp_size,
+    prop_lcc = prop_lcc
+  )
+}
+
+ego_metrics_df <- do.call(rbind, lapply(all_egos, compute_ego_metrics))
+
+demo_cols <- c("egoid", "gender_1", "race_1", "parentincome_1", "RegionUS",
+               "Extraversion_1", "Openness_1", "Agreeableness_1", "Conscientiousness_1", "Neuroticism_1")
+
+df_merged <- inner_join(ego_metrics_df, basic_raw[, demo_cols], by = "egoid")
+df_analytic <- df_merged %>% filter(size >= 3, edges > 0)
+```
+
+# 2. K-Means Clustering & Typology Mapping
+
+```{r clustering}
+cluster_vars <- c("size", "modularity", "diameter", "betweenness_centralization", "density")
+X_scaled <- scale(df_analytic[, cluster_vars])
+
+set.seed(42)
+km_fit <- kmeans(X_scaled, centers = 4, nstart = 100, iter.max = 100)
+
+temp_clus <- km_fit$cluster
+means_mat <- aggregate(X_scaled, by = list(temp_clus), FUN = mean)
+
+clus_pearl <- which.max(means_mat$size)
+clus_dense <- which.max(means_mat$density)
+clus_star  <- which.max(means_mat$betweenness_centralization)
+clus_seg   <- setdiff(1:4, c(clus_pearl, clus_dense, clus_star))
+
+cluster_map <- c()
+cluster_map[clus_pearl] <- 0
+cluster_map[clus_seg]   <- 1
+cluster_map[clus_star]  <- 2
+cluster_map[clus_dense] <- 3
+
+df_analytic$cluster_km <- cluster_map[temp_clus]
+df_analytic$cluster_factor <- factor(df_analytic$cluster_km,
+                                     levels = 0:3,
+                                     labels = c("Pearl Collar", "Segmented", "Centered Star", "Regular Dense"))
+
+table(df_analytic$cluster_factor)
+```
+
+# 3. Decision Tree Classification (Extension 2)
+
+```{r decision-tree}
+tree_fit <- rpart(
+  cluster_factor ~ size + modularity + diameter + betweenness_centralization + density + n_components + prop_lcc,
+  data = df_analytic,
+  method = "class",
+  control = rpart.control(cp = 0.01, maxdepth = 5, minsplit = 10)
+)
+
+rpart.plot(tree_fit, 
+           type = 4, 
+           extra = 104, 
+           under = TRUE, 
+           fallen.leaves = TRUE,
+           box.palette = "BuGn",
+           main = "Empirical Decision Tree for Personal Network Typologies")
+
+pred_tree <- predict(tree_fit, type = "class")
+cat("Decision Tree Accuracy:", mean(pred_tree == df_analytic$cluster_factor), "\n")
+```
+
+# 4. Statistical Regressions
+
+```{r regressions}
+inc_levels <- c("less than $25,000", "$25,000 - $49,999", "$50,000 - $74,999", 
+                "$75,000 - $99,999", "$100,000 - $149,999", "$150,000 - $199,999", 
+                "$200,000 - $249,999", "$250,000 or more")
+
+dat_reg <- df_analytic %>%
+  rename(cluster = cluster_factor, gender = gender_1, race = race_1) %>%
+  filter(race != "Other", race != "", !is.na(gender), gender %in% c("Male", "Female")) %>%
+  mutate(gender = factor(gender, levels = c("Male", "Female"))) %>%
+  mutate(race = factor(race, levels = c("African-American", "White", "Foreign Student", "Latino/a", "Asian-American"))) %>%
+  mutate(foreign = if_else(race == "Foreign Student", "Foreign", "Not Foreign")) %>%
+  mutate(foreign = factor(foreign, levels = c("Not Foreign", "Foreign"))) %>%
+  mutate(asian = if_else(race == "Asian-American", "Asian", "Not Asian")) %>%
+  mutate(asian = factor(asian, levels = c("Not Asian", "Asian"))) %>%
+  mutate(inc = factor(parentincome_1, levels = inc_levels))
+
+# Gender Model
+mod_gender <- multinom(cluster ~ gender, data = dat_reg)
+summary(mod_gender)
+
+# Race Model
+mod_race <- multinom(cluster ~ foreign + asian, data = dat_reg)
+summary(mod_race)
+
+# Income / SES Model
+mod_ses <- multinom(cluster ~ inc, data = dat_reg)
+summary(mod_ses)
+
+# Big Five Personality Model
+mod_big5 <- multinom(cluster ~ Extraversion_1 + Openness_1 + Agreeableness_1 + Conscientiousness_1 + Neuroticism_1, data = dat_reg)
+summary(mod_big5)
+```
