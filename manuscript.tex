@@ -210,7 +210,7 @@ A central objective of this article is to move beyond subjective, manual heurist
 \caption{Empirical Decision Tree for Classifying Personal Network Typologies}
 \label{fig:decision_tree}
 \vspace{1ex}
-\parbox{\linewidth}{\footnotesize \textit{Note:} Classification decision tree (\texttt{rpart}) predicting personal network typologies from structural properties ($N = 701$). Terminal leaves display predicted class, purity percentage, and sample share. Overall classification accuracy is 92.9\%.}
+\parbox{\linewidth}{\footnotesize \textit{Note:} Classification decision tree (\texttt{rpart}) predicting personal network typologies from structural properties ($N = 701$). Terminal leaves display predicted class, classification accuracy, and sample share. Overall classification accuracy is 92.9\%.}
 \end{figure}
 
 \begin{figure}[htbp]
@@ -222,7 +222,7 @@ A central objective of this article is to move beyond subjective, manual heurist
 \parbox{\linewidth}{\footnotesize \textit{Note:} Side-by-side comparison of classification decision trees. Panel A displays \citeauthor{bidart2018personal}'s \citeyearpar{bidart2018personal} theoretical heuristics based on French young adults. Panel B displays the empirical NetHealth classification tree for U.S.\ college students (92.9\% accuracy).}
 \end{figure}
 
-As shown in \Cref{fig:decision_tree} and \Cref{fig:comparative_trees}, our empirical decision tree achieves 92.9\% overall accuracy and reveals critical differences from earlier heuristic frameworks. Whereas \citet{bidart2018personal} initiated their classification tree on betweenness centralization ($> 0.20$), the empirical \textit{NetHealth} tree identifies density as the primary root split at a cutoff of 0.55: networks with density exceeding 0.55 and low centralization ($< 0.33$) are classified as Regular Dense with 98.4\% accuracy. For lower-density networks, the algorithm splits on betweenness centralization at 0.24, isolating Centered Stars (89.9\% purity), followed by diameter ($\ge 3.5$) and size ($\ge 37$) to delineate Pearl Collar networks from Segmented networks (97.8\% purity). These cutoffs demonstrate that the high-contact residential campus environment substantially shifts baseline density upward relative to the general young adult population.
+As shown in \Cref{fig:decision_tree} and \Cref{fig:comparative_trees}, our empirical decision tree achieves 92.9\% overall accuracy and reveals critical differences from earlier heuristic frameworks. Whereas \citet{bidart2018personal} initiated their classification tree on betweenness centralization ($> 0.20$), the empirical \textit{NetHealth} tree identifies density as the primary root split at a cutoff of 0.55: networks with density exceeding 0.55 and low centralization ($< 0.33$) are classified as Regular Dense with 98.4\% accuracy. For lower-density networks, the algorithm splits on betweenness centralization at 0.24, isolating Centered Stars (89.9\% classification accuracy), followed by diameter ($\ge 3.5$) and size ($\ge 37$) to delineate Pearl Collar networks from Segmented networks (97.8\% classification accuracy). These cutoffs demonstrate that the high-contact residential campus environment substantially shifts baseline density upward relative to the general young adult population.
 
 \section{Longitudinal Trajectory Transitions and Typology Dynamics}
 
@@ -283,11 +283,11 @@ Finally, we examined whether the Big Five personality dimensions---Extraversion,
 
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=0.85\linewidth]{Plots/fig10_personality_profiles.png}
+\includegraphics[width=0.88\linewidth]{Plots/fig10_personality_profiles.png}
 \caption{Big Five Personality Trait Means Across Personal Network Typologies}
 \label{fig:personality_profiles}
 \vspace{1ex}
-\parbox{\linewidth}{\footnotesize \textit{Note:} Points represent mean trait scores (1 to 5 scale) with 95\% confidence interval error bars across the four network typologies ($N = 701$).}
+\parbox{\linewidth}{\footnotesize \textit{Note:} Forest plot displaying mean Big Five personality trait scores (1 to 5 scale) with 95\% confidence interval error bars across the four personal network typologies ($N = 701$). Markers and intervals are dodged by typology.}
 \end{figure}
 
 \input{tables/table7_big5_regression.tex}

@@ -377,26 +377,28 @@ p_db_foreign <- ggplot(db_foreign, aes(y = cluster_factor)) +
 p_fig9 <- p_db_gender / p_db_foreign
 ggsave("Plots/fig9_demographic_dumbbells.png", p_fig9, width = 6.5, height = 5.2, dpi = 300)
 
-# Figure 10: Big Five Personality Dimensions across Typologies
+# Figure 10: Big Five Personality Dimensions across Typologies (Forest Plot)
 big5_long <- df %>%
   select(cluster_factor, Extraversion_1, Openness_1, Agreeableness_1, Conscientiousness_1, Neuroticism_1) %>%
   pivot_longer(cols = -cluster_factor, names_to = "Trait", values_to = "Score") %>%
-  mutate(Trait = gsub("_1", "", Trait)) %>%
+  mutate(Trait = gsub("_1", "", Trait),
+         Trait = factor(Trait, levels = rev(c("Extraversion", "Agreeableness", "Conscientiousness", "Neuroticism", "Openness"))),
+         cluster_factor = factor(cluster_factor, levels = c("Pearl Collar", "Segmented", "Centered Star", "Regular Dense"))) %>%
   group_by(cluster_factor, Trait) %>%
   summarise(Mean = mean(Score, na.rm = TRUE),
             SE = sd(Score, na.rm = TRUE) / sqrt(sum(!is.na(Score))), .groups = "drop")
 
-p_fig10 <- ggplot(big5_long, aes(x = Trait, y = Mean, group = cluster_factor, color = cluster_factor)) +
-  geom_line(linewidth = 0.8, position = position_dodge(width = 0.3)) +
-  geom_point(size = 2.8, position = position_dodge(width = 0.3)) +
-  geom_errorbar(aes(ymin = Mean - 1.96 * SE, ymax = Mean + 1.96 * SE),
-                width = 0.2, linewidth = 0.4, position = position_dodge(width = 0.3)) +
+p_fig10 <- ggplot(big5_long, aes(y = Trait, x = Mean, color = cluster_factor)) +
+  geom_errorbar(aes(xmin = Mean - 1.96 * SE, xmax = Mean + 1.96 * SE),
+                width = 0.25, linewidth = 0.5, position = position_dodge(width = 0.6)) +
+  geom_point(size = 2.8, position = position_dodge(width = 0.6)) +
   scale_color_brewer(palette = "Set1", name = "Personal Network Typology") +
+  scale_x_continuous(breaks = seq(2.6, 4.0, by = 0.2), limits = c(2.6, 4.0)) +
   theme_apa(base_size = 9.5) +
   theme(legend.position = "bottom") +
   guides(color = guide_legend(nrow = 2, byrow = TRUE)) +
-  labs(x = "Big Five Personality Dimension", y = "Mean Trait Score (1 to 5 Scale)")
-ggsave("Plots/fig10_personality_profiles.png", p_fig10, width = 6.5, height = 3.8, dpi = 300)
+  labs(y = "Big Five Personality Trait", x = "Mean Trait Score (1 to 5 Scale)")
+ggsave("Plots/fig10_personality_profiles.png", p_fig10, width = 6.5, height = 4.2, dpi = 300)
 
 # ==============================================================================
 # 2. GENERATE PRE-COMPILED APA MARKDOWN TABLES (cache/)

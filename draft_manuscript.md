@@ -226,7 +226,7 @@ A central objective of this research was to move beyond subjective, manual heuri
 
 **Figure 6. Empirical Decision Tree for Classifying Personal Network Typologies.**
 
-#### Note: Classification decision tree (rpart) predicting personal network typologies from structural properties (N=701). Terminal leaves display predicted class, purity percentage, and sample share. Overall classification accuracy is 92.9%.
+#### Note: Classification decision tree (rpart) predicting personal network typologies from structural properties (N=701). Terminal leaves display predicted class, classification accuracy, and sample share. Overall classification accuracy is 92.9%.
 
 <img src="media/image9.png" style="width:6.5in;height:4.2in" />
 
@@ -234,7 +234,7 @@ A central objective of this research was to move beyond subjective, manual heuri
 
 #### Note: Side-by-side comparison of classification decision trees. Panel A displays Bidart et al.’s (2018) theoretical heuristics based on French young adults. Panel B displays the empirical NetHealth classification tree for U.S. college students (92.9% accuracy).
 
-As shown in Figures 6 and 7, our empirical decision tree achieves 92.9% overall accuracy and reveals critical differences from earlier heuristic frameworks. Whereas Bidart et al. initiated their classification tree on betweenness centralization (\>0.20), the empirical *NetHealth* tree identifies alter-alter density as the primary root split at a cutoff of 0.55: networks with density exceeding 0.55 and low centralization (\<0.33) are classified as Regular Dense with 98.4% accuracy. For lower-density networks, the algorithm splits on betweenness centralization at 0.235, isolating Centered Stars (89.9% purity), followed by diameter (≥3.5) and size (≥37) to delineate Pearl Collar networks from Segmented networks (97.8% purity). These cutoffs demonstrate that the high-contact residential campus environment substantially shifts baseline density upward relative to the general young adult population.
+As shown in Figures 6 and 7, our empirical decision tree achieves 92.9% overall accuracy and reveals critical differences from earlier heuristic frameworks. Whereas Bidart et al. initiated their classification tree on betweenness centralization (\>0.20), the empirical *NetHealth* tree identifies alter-alter density as the primary root split at a cutoff of 0.55: networks with density exceeding 0.55 and low centralization (\<0.33) are classified as Regular Dense with 98.4% accuracy. For lower-density networks, the algorithm splits on betweenness centralization at 0.235, isolating Centered Stars (89.9% classification accuracy), followed by diameter (≥3.5) and size (≥37) to delineate Pearl Collar networks from Segmented networks (97.8% classification accuracy). These cutoffs demonstrate that the high-contact residential campus environment substantially shifts baseline density upward relative to the general young adult population.
 
 # Longitudinal Trajectory Transitions and Typology Dynamics
 
@@ -328,7 +328,7 @@ Finally, we examined whether the Big Five personality dimensions—Extraversion,
 
 **Figure 10. Big Five Personality Trait Means Across Personal Network Typologies.**
 
-#### Note: Points represent mean trait scores (1 to 5 scale) with 95% confidence interval error bars across the four network typologies (N=701).
+#### Note: Forest plot displaying mean Big Five personality trait scores (1 to 5 scale) with 95% confidence interval error bars across the four personal network typologies (N = 701). Markers and intervals are dodged by typology.
 
 **Table 7. Multinomial Logistic Regression Predicting Network Typology from Big Five Personality Traits**
 
