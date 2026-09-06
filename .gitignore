@@ -17,3 +17,13 @@ tmp_pptx_media/
 # Raw data
 raw_dat/
 cache/
+
+# LaTeX build artifacts
+*.aux
+*.bbl
+*.blg
+*.log
+*.out
+*.synctex.gz
+*.fls
+*.fdb_latexmk

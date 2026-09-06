@@ -1,0 +1,25 @@
+\begin{table}[htbp]
+\centering
+\small
+\caption{Multinomial Logistic Regressions Predicting Personal Network Typology Membership}
+\label{tab:regressions}
+\begin{tabular}{lccc}
+\toprule
+\textbf{Comparison Cluster vs. Reference (Pearl Collar)} & \textbf{Estimate} & \textbf{SE} & \textbf{$p$-value} \\
+\midrule
+\multicolumn{4}{l}{\textit{Segmented vs. Pearl Collar}} \\
+\quad Men (vs. Women) & 0.15 & (0.20) & 0.441 \\
+\quad International (vs. Domestic) & 0.29 & (0.40) & 0.480 \\
+\addlinespace
+\multicolumn{4}{l}{\textit{Centered Star vs. Pearl Collar}} \\
+\quad Men (vs. Women) & 0.06 & (0.23) & 0.803 \\
+\quad International (vs. Domestic) & 0.51 & (0.44) & 0.245 \\
+\addlinespace
+\multicolumn{4}{l}{\textit{Regular Dense vs. Pearl Collar}} \\
+\quad Men (vs. Women) & 0.55* & (0.24) & 0.022 \\
+\quad International (vs. Domestic) & 0.26 & (0.49) & 0.599 \\
+\bottomrule
+\end{tabular}
+\vspace{1ex}
+\parbox{\linewidth}{\footnotesize \textit{Note:} Multinomial logistic regression estimates with standard errors in parentheses ($N = 701$). Reference category for the outcome is Pearl Collar. Gender identity is coded with women as reference. International status is coded with domestic students as reference. * $p < 0.05$, ** $p < 0.01$, *** $p < 0.001$.}
+\end{table}

@@ -1,0 +1,25 @@
+\begin{table}[htbp]
+\centering
+\small
+\setlength{\tabcolsep}{7pt}
+\caption{Cluster Partition Quality Diagnostics Across Candidate Solutions ($k = 2$ to $10$)}
+\label{tab:cluster_selection}
+\begin{tabular}{ccccc}
+\toprule
+\textbf{Clusters} & \textbf{Within-Cluster} & \textbf{Variance} & \textbf{Average} & \textbf{Calinski--Harabasz} \\
+\textbf{($k$)} & \textbf{SS} & \textbf{Explained (\%)} & \textbf{Silhouette} & \textbf{Index} \\
+\midrule
+2  & 2220.9 & 36.5\% & 0.328 & 402.6 \\
+3  & 1739.5 & 50.3\% & 0.267 & 353.2 \\
+\textbf{4} & \textbf{1413.1} & \textbf{59.6\%} & \textbf{0.279} & \textbf{343.1} \\
+5  & 1249.6 & 64.3\% & 0.270 & 313.3 \\
+6  & 1098.6 & 68.6\% & 0.277 & 303.8 \\
+7  & 987.1  & 71.8\% & 0.256 & 294.4 \\
+8  & 924.4  & 73.6\% & 0.242 & 275.8 \\
+9  & 866.7  & 75.2\% & 0.232 & 262.8 \\
+10 & 812.2  & 76.8\% & 0.244 & 254.1 \\
+\bottomrule
+\end{tabular}
+\vspace{1ex}
+\parbox{\linewidth}{\footnotesize \textit{Note:} Diagnostics evaluated across standardized structural metrics ($z$-scores of size, modularity, diameter, betweenness centralization, and density) for $N = 701$ participants. Bold row highlights the optimal four-cluster solution, which maximizes the local silhouette width while reaching the elbow inflection.}
+\end{table}
