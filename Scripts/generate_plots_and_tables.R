@@ -203,6 +203,8 @@ for (typology in names(medoids)) {
     filter(egoid == ego, vertex1 != ego, vertex2 != ego) %>%
     select(vertex1, vertex2) %>% distinct() %>% filter(vertex1 %in% alters, vertex2 %in% alters)
   g <- graph_from_data_frame(sub_edges, directed = FALSE, vertices = data.frame(name = alters))
+  # Eliminate isolates to focus on connected component topology
+  g <- delete_vertices(g, which(degree(g) == 0))
   tg <- as_tbl_graph(g) %>%
     mutate(degree = centrality_degree(), betweenness = centrality_betweenness(), community = as.factor(group_louvain()))
   set.seed(42)
